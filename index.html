@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Ke Google Sheet</title>
+    <style>
+        body { font-family: sans-serif; margin: 40px; background-color: #f4f4f9; }
+        form { max-width: 400px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select, textarea { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; background-white: white; }
+        button { background-color: #4CAF50; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; width: 100%; }
+        button:hover { background-color: #45a049; }
+    </style>
+</head>
+<body>
+
+    <h2>Hubungi Kami</h2>
+    
+    <form id="submit-to-google-sheet">
+        <!-- PERUBAHAN: Input teks diganti menjadi elemen Select -->
+        <div class="input-group">
+            <label for="nama">Nama:</label>
+            <select id="nama" name="nama" required>
+                <option value="" disabled selected>-- Pilih Nama --</option>
+            </select>
+        </div>
+        
+       <div class="input-group">
+            <label for="mesin">Mesin:</label>
+            <select id="mesin" name="mesin" required>
+                <option value="" disabled selected>-- Pilih Mesin --</option>
+            </select>
+        </div>
+
+       <div class="input-group">
+            <label for="proses">Proses:</label>
+            <select id="proses" name="proses" required>
+                <option value="" disabled selected>-- Pilih Proses --</option>
+            </select>
+        </div>
+
+       <div class="input-group">
+            <label for="lensa">Lensa:</label>
+            <select id="lensa" name="lensa" required>
+                <option value="" disabled selected>-- Pilih Lensa --</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label for="qtyok">Qty Ok:</label>
+            <input type="number" id="qtyok" name="qtyok" required>
+        </div>
+
+        <div class="input-group">
+            <label for="qtyngscrap">Qty NG Scrap:</label>
+            <input type="number" id="qtyngscrap" name="qtyngscrap" required>
+        </div>
+
+        
+        <div class="input-group">
+            <label for="detailng">Detail NG:</label>
+            <textarea id="detailng" name="detailng" rows="4" required></textarea>
+        </div>
+        
+        <button type="submit">Kirim Data</button>
+    </form>
+
+    <script>
+        // 1. CONSTANT DAFTAR NAMA (Silakan ubah/tambah list ini sesuai kebutuhan)
+        const listKaryawan = [
+            'Andi Wijaya',
+            'Budi Santoso',
+            'Citra Dewi',
+            'Dedi Dermawan',
+            'Ezra Reyhansyah'
+        ];
+
+        const listMesin = [
+            'CG-01',
+            'CG-02',
+            'CG-03',
+            'SM-01',
+            'SM-02'
+        ];        
+
+        const listProses = [
+            'CG',
+            'SM',
+            'PO',
+            'CE',
+            'CO PO',
+            'CO FI'
+        ];  
+
+        const listLensa = [
+        'B-4545TG1-BO',
+        'B-4545TG1G2-BO',
+        'B-4545TG2-BO',
+        'B-4545TG3-CO',
+        'B-EYEPIECE29104-CO',
+        'B-EYEPIECE29105-CO',
+        'B-EYEPIECE29107-CO',
+        'B-GAA1525-BO',
+        'B-GAA1525L1-BO',
+        'B-GAA1525L2-BO',
+        'B-GAA1526-BO',
+        'B-GAA1526L1-BO',
+        'B-GAA1526L2-BO',
+        'B-GAA1527-CO',
+        'B-GM00382C-PO',
+        'B-LA3406-PA',
+        'B-LA5558-BO',
+        'B-LA5559-BO',
+        'B-LA5641-BO',
+        'B-LA5642-BO',
+        'B-LA7021-BOPA',
+        'B-LA7022-BOPA',
+        'B-LA8763-CO',
+        'B-LK0386-CO',
+        'B-LK3214-CO',
+        'B-LK6159-BOPA',
+        'B-LK6160-BOPA',
+        'B-LK6161-PA',
+        'B-LK6167-BO',
+        'B-LK6168-BO',
+        'B-LK6171-CO',
+        'B-LK6172-CO',
+        'B-LK6229-CO',
+        'B-LK6232-CO',
+        'B-LK6236-BO',
+        'B-LK6237-BO',
+        'B-LK6384-BO',
+        'B-LK6642-BO',
+        'B-LK6643-BO',
+        'B-LK6644-BO',
+        'B-LK6645-BO',
+        'B-LK6646-BO',
+        'B-LK6647-BO',
+        'B-LK7020-BO',
+        'B-LK7021-BO',
+        'B-LK7024-BO',
+        'B-LK7025-CO',
+        'B-LU0214-BO',
+        'B-LU0246-BO',
+        'B-LU0756-BOPA',
+        'B-LU3025-BO',
+        'B-LU3026-BO',
+        'B-LU3027-BO',
+        'B-LU3135-BO',
+        'B-LU3136-BOPA',
+        'B-LU3138-BO',
+        'B-LU3239-BO',
+        'B-LU3241-BO',
+        'B-XA9023101G1-PO',
+        'B-XA9023102G2-PO',
+        'B-XA9023103G3-PO'
+        ];          
+
+        // 2. LOGIKA UNTUK MEMASUKKAN CONST KE DROPDOWN
+        const namaSelect = document.getElementById('nama');
+        
+        listKaryawan.forEach(nama => {
+            const option = document.createElement('option');
+            option.value = nama;       // Nilai yang dikirim ke Google Sheet
+            option.textContent = nama; // Teks yang muncul di layar browser
+            namaSelect.appendChild(option);
+        });
+
+        const mesinSelect = document.getElementById('mesin');
+        
+        listMesin.forEach(mesin => {
+            const option = document.createElement('option');
+            option.value = mesin;       // Nilai yang dikirim ke Google Sheet
+            option.textContent = mesin; // Teks yang muncul di layar browser
+            mesinSelect.appendChild(option);
+        });
+
+        const prosesSelect = document.getElementById('proses');
+        
+        listProses.forEach(proses => {
+            const option = document.createElement('option');
+            option.value = proses;       // Nilai yang dikirim ke Google Sheet
+            option.textContent = proses; // Teks yang muncul di layar browser
+            prosesSelect.appendChild(option);
+        });
+
+        const lensaSelect = document.getElementById('lensa');
+        
+        listLensa.forEach(lensa => {
+            const option = document.createElement('option');
+            option.value = lensa;       // Nilai yang dikirim ke Google Sheet
+            option.textContent = lensa; // Teks yang muncul di layar browser
+            lensaSelect.appendChild(option);
+        });
+
+        // 3. PROSES KIRIM DATA (Sama seperti sebelumnya)
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbyDgdM9t1SeVd-Yab4OWuWEfJ4iboEHh90Z0nq0-VHo_-4EsDLbOGCO7FMXVQ2sZFpM/exec';
+        const form = document.getElementById('submit-to-google-sheet');
+
+        form.addEventListener('submit', e => {
+            e.preventDefault();
+            
+            fetch(scriptURL, { method: 'POST', body: new FormData(form)})
+                .then(response => {
+                    alert('Data berhasil dikirim.');
+                    form.reset();
+                })
+                .catch(error => {
+                    console.error('Error!', error.message);
+                    alert('Waduh, ada error saat mengirim data.');
+                });
+        });
+    </script>
+
+</body>
+</html>
