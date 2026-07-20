@@ -4,6 +4,283 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistem Penugasan Operator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans antialiased p-4 md:p-8">
+
+    <div id="app" class="max-w-6xl mx-auto hidden">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-xl md:text-2xl font-bold text-gray-900">Sistem Penugasan Produksi</h1>
+                <p id="user-info" class="text-sm text-gray-500"></p>
+            </div>
+            <button id="btn-export" class="hidden bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700 text-sm font-medium">
+                📥 Export
+            </button>
+        </div>
+
+        <!-- Form Admin (Hanya muncul jika token Admin) -->
+        <div id="admin-form-container" class="bg-white p-6 rounded-lg shadow-sm border border-gray-100 mb-8 hidden">
+            <h2 class="text-lg font-semibold mb-4">Input Plan Penugasan Baru</h2>
+            <form id="plan-form" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <input type="date" id="input-tanggal" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                
+                <select id="input-nama" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                    <option value="" disabled selected>Pilih Operator</option>
+                </select>
+                
+                <select id="input-bagian" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                    <option value="" disabled selected>Pilih Bagian</option>
+                </select>
+                
+                <select id="input-mesin" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                    <option value="" disabled selected>Pilih Nomor Mesin</option>
+                </select>
+                
+                <select id="input-lensa" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                    <option value="" disabled selected>Pilih Tipe Lensa</option>
+                </select>
+
+                <input type="number" id="input-plan" placeholder="Plan Qty" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none">
+                
+                <button type="submit" class="md:col-span-3 bg-blue-600 text-white py-2 rounded shadow hover:bg-blue-700 font-medium">
+                    Simpan Plan
+                </button>
+            </form>
+        </div>
+
+        <!-- TAMPILAN ADMIN: Tabel Data Normal -->
+        <div id="admin-table-container" class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-x-auto hidden">
+            <table id="data-table" class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-100 text-gray-700 text-sm">
+                        <th class="p-3 border-b">Tanggal</th>
+                        <th class="p-3 border-b">Operator</th>
+                        <th class="p-3 border-b">Bagian</th>
+                        <th class="p-3 border-b">Mesin</th>
+                        <th class="p-3 border-b">Tipe Lensa</th>
+                        <th class="p-3 border-b">Plan Qty</th>
+                        <th class="p-3 border-b">Actual Qty</th>
+                        <th class="p-3 border-b">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body" class="text-sm">
+                    <!-- Data Admin akan dirender di sini -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- TAMPILAN OPERATOR: Layout Card Bertumpuk (Mobile Friendly) -->
+        <div id="operator-card-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 hidden">
+            <!-- Data Operator akan dirender di sini dalam bentuk Card -->
+        </div>
+
+    </div>
+
+    <!-- Halaman Error Akses -->
+    <div id="error-screen" class="max-w-md mx-auto mt-20 bg-red-50 p-6 rounded-lg text-center border border-red-200 hidden">
+        <h2 class="text-xl font-bold text-red-700 mb-2">Akses Ditolak</h2>
+        <p class="text-gray-700">Token URL tidak valid atau tidak ditemukan. Pastikan Anda masuk menggunakan link khusus Anda.</p>
+    </div>
+
+    <script>
+        // 1. KONFIGURASI PENTING
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxkNW0qW5lr49nDe37teWptHryLxWQZQGZEovCehTyVigyTg3vnUnoYiGijZ5XQ5cIz/exec'; // <-- JANGAN LUPA GANTI INI 
+
+        // 2. DATA DROPDOWN (CONST)
+        const DAFTAR_OPERATOR = ["Andi", "Budi", "Siti"];
+        const DAFTAR_BAGIAN = ["Coating", "Polishing", "Surfacing", "Edging", "QC"];
+        const DAFTAR_MESIN = ["M-01", "M-02", "M-03", "C-01"];
+        const DAFTAR_LENSA = ["Thin-Film AR", "Progressive", "Single Vision", "Bifocal"];
+        
+        // 3. SISTEM TOKEN 
+        const users = {
+            "admin-utama": { role: "admin", name: "Administrator" },
+            "op-andi": { role: "operator", name: "Andi" },
+            "op-budi": { role: "operator", name: "Budi" },
+            "op-siti": { role: "operator", name: "Siti" }
+        };
+
+        // Identifikasi User
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        let currentUser = null;
+        let globalData = [];
+
+        // Inisialisasi Aplikasi
+        function initApp() {
+            if (users[token]) {
+                currentUser = users[token];
+                document.getElementById('app').classList.remove('hidden');
+                document.getElementById('user-info').innerText = `Masuk sebagai: ${currentUser.name} (${currentUser.role.toUpperCase()})`;
+                
+                if (currentUser.role === 'admin') {
+                    // Tampilkan form admin, tombol export, dan container tabel
+                    document.getElementById('admin-form-container').classList.remove('hidden');
+                    document.getElementById('btn-export').classList.remove('hidden');
+                    document.getElementById('admin-table-container').classList.remove('hidden');
+                    populateDropdowns();
+                } else {
+                    // Tampilkan container card khusus operator
+                    document.getElementById('operator-card-container').classList.remove('hidden');
+                }
+                loadData();
+            } else {
+                document.getElementById('error-screen').classList.remove('hidden');
+            }
+        }
+
+        function populateDropdowns() {
+            const fillSelect = (id, arrayData) => {
+                const select = document.getElementById(id);
+                arrayData.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item;
+                    option.textContent = item;
+                    select.appendChild(option);
+                });
+            };
+
+            fillSelect('input-nama', DAFTAR_OPERATOR);
+            fillSelect('input-bagian', DAFTAR_BAGIAN);
+            fillSelect('input-mesin', DAFTAR_MESIN);
+            fillSelect('input-lensa', DAFTAR_LENSA);
+        }
+
+        async function loadData() {
+            if (currentUser.role === 'admin') {
+                document.getElementById('table-body').innerHTML = '<tr><td colspan="8" class="text-center p-4">Memuat data...</td></tr>';
+            } else {
+                document.getElementById('operator-card-container').innerHTML = '<p class="text-center p-4 text-gray-500">Memuat data...</p>';
+            }
+
+            try {
+                const response = await fetch(SCRIPT_URL);
+                globalData = await response.json();
+                renderData();
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                alert("Gagal memuat data dari server.");
+            }
+        }
+
+        // FUNGSI RENDER UTAMA (Pisah logika Admin dan Operator)
+        function renderData() {
+            if (currentUser.role === 'admin') {
+                renderAdminTable();
+            } else if (currentUser.role === 'operator') {
+                renderOperatorCards();
+            }
+        }
+
+        // TAMPILAN ADMIN (TABEL LEBAR NORMAL)
+        function renderAdminTable() {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+
+            globalData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = "border-b hover:bg-gray-50";
+
+                let actualHtml = row['Actual Qty'] || '-';
+                let actionHtml = `<button onclick="deleteData('${row.ID}')" class="text-red-500 hover:text-red-700 font-medium">Hapus</button>`;
+
+                tr.innerHTML = `
+                    <td class="p-3">${row['Tanggal']}</td>
+                    <td class="p-3 font-medium">${row['Nama Operator']}</td>
+                    <td class="p-3">${row['Bagian']}</td>
+                    <td class="p-3 text-gray-500">${row['Nomor Mesin']}</td>
+                    <td class="p-3 text-gray-500">${row['Tipe Lensa']}</td>
+                    <td class="p-3 font-bold text-blue-600">${row['Plan Qty']}</td>
+                    <td class="p-3 font-bold text-green-600">${actualHtml}</td>
+                    <td class="p-3">${actionHtml}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // TAMPILAN OPERATOR (CARD BERTUMPUK)
+        function renderOperatorCards() {
+            const container = document.getElementById('operator-card-container');
+            container.innerHTML = '';
+
+            // Filter data khusus untuk operator yang login
+            const operatorData = globalData.filter(row => row['Nama Operator'].toLowerCase() === currentUser.name.toLowerCase());
+
+            if (operatorData.length === 0) {
+                container.innerHTML = `<div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100 text-center w-full col-span-2 text-gray-500">Belum ada penugasan plan untuk Anda.</div>`;
+                return;
+            }
+
+            operatorData.forEach(row => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden";
+
+                let actualValue = row['Actual Qty'] || '';
+
+                card.innerHTML = `
+                    <!-- Header Card -->
+                    <div class="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                        <span class="text-sm font-semibold text-gray-700">📅 ${row['Tanggal']}</span>
+                        <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-bold">${row['Tipe Lensa']}</span>
+                    </div>
+                    
+                    <!-- Isi Card Bertumpuk -->
+                    <div class="p-4">
+                        <div class="grid grid-cols-2 gap-2 mb-4 text-sm">
+                            <div class="text-gray-500">Bagian:</div>
+                            <div class="font-medium text-right">${row['Bagian']}</div>
+                            
+                            <div class="text-gray-500">Nomor Mesin:</div>
+                            <div class="font-medium text-right">${row['Nomor Mesin']}</div>
+                            
+                            <div class="text-gray-500">Plan Qty:</div>
+                            <div class="font-bold text-blue-600 text-right text-base">${row['Plan Qty']} pcs</div>
+                        </div>
+
+                        <!-- Area Input Actual -->
+                        <div class="flex items-center gap-3 pt-3 border-t border-gray-100">
+                            <label class="text-sm font-semibold text-gray-700 whitespace-nowrap">Actual Qty:</label>
+                            <input type="number" id="actual-${row.ID}" value="${actualValue}" 
+                                class="border p-2 rounded-md w-full focus:ring-2 focus:ring-blue-500 outline-none text-center bg-blue-50" 
+                                placeholder="0">
+                            <button onclick="updateActual('${row.ID}')" 
+                                class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 font-medium text-sm transition-colors shadow-sm">
+                                Simpan
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // (FUNGSI SUBMIT, UPDATE, DELETE, EXPORT TETAP SAMA SEPERTI SEBELUMNYA)
+        document.getElementById('plan-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            btn.innerText = "Menyimpan..."; btn.disabled = true;
+
+            const formData = new URLSearchParams();
+            formData.append('action', 'create');
+            formData.append('tanggal', document.getElementById('input-tanggal').value);
+            formData.append('nama', document.getElementById('input-nama').valueAh, paham! Ini pendekatan *UI/UX* yang jauh lebih baik untuk pengguna *mobile* (HP). Daripada teksnya yang dikecilkan, kita ubah bentuk tabelnya menjadi **tampilan kartu (Card/Bertumpuk)**. 
+
+Jadi, baris yang tadinya memanjang ke kanan akan diubah menjadi susunan atas-bawah. Setiap satu penugasan akan terlihat seperti satu kotak informasi. Dan yang terpenting, **tampilan admin akan tetap berwujud tabel normal yang memanjang.**
+
+Kita hanya perlu mengubah bagian `<style>` di atas dan menambahkan sedikit atribut `data-label` di Javascript agar judul kolom bisa muncul di sebelah kiri setiap baris data.
+
+Berikut adalah kode lengkap terbarunya. Silakan *copy-paste* semua kode ini:
+
+```html
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Penugasan Operator</title>
     <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
     <script src="[https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js](https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js)"></script>
     <style>
