@@ -6,18 +6,41 @@
     <title>Sistem Penugasan Operator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        /* CSS KHUSUS OPERATOR: Aktif jika tabel diberi class "operator-mode" lewat JS */
+        .operator-mode th, .operator-mode td {
+            padding: 4px 2px !important; /* Jarak atas-bawah 4px, kiri-kanan 2px (sangat rapat) */
+            font-size: 11px !important; /* Ukuran teks diperkecil agar muat di layar HP */
+            word-wrap: break-word;
+            white-space: normal;
+        }
+        .operator-mode input[type="number"] {
+            width: 45px !important; /* Kotak input angka lebih pendek */
+            padding: 2px !important;
+            height: 24px !important;
+            font-size: 11px !important;
+        }
+        .operator-mode button {
+            padding: 2px 6px !important; /* Tombol simpan lebih imut */
+            font-size: 10px !important;
+        }
+        /* Menghilangkan scrollbar pada kontainer tabel khusus operator agar terlihat menyatu */
+        .operator-container-mode {
+            overflow-x: hidden !important; 
+        }
+    </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans antialiased p-4 md:p-8">
+<body class="bg-gray-50 text-gray-800 font-sans antialiased p-2 md:p-8">
 
     <div id="app" class="max-w-6xl mx-auto hidden">
         <!-- Header -->
-        <div class="flex justify-between items-center mb-6">
+        <div class="flex justify-between items-center mb-4 md:mb-6">
             <div>
-                <h1 class="text-2xl font-bold text-gray-900">Sistem Penugasan Produksi</h1>
-                <p id="user-info" class="text-sm text-gray-500"></p>
+                <h1 class="text-xl md:text-2xl font-bold text-gray-900">Sistem Penugasan Produksi</h1>
+                <p id="user-info" class="text-xs md:text-sm text-gray-500"></p>
             </div>
             <button id="btn-export" class="hidden bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700 text-sm font-medium">
-                📥 Export ke Excel
+                📥 Export
             </button>
         </div>
 
@@ -27,7 +50,6 @@
             <form id="plan-form" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <input type="date" id="input-tanggal" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white">
                 
-                <!-- Input text diubah menjadi Select Dropdown -->
                 <select id="input-nama" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white">
                     <option value="" disabled selected>Pilih Operator</option>
                 </select>
@@ -53,7 +75,7 @@
         </div>
 
         <!-- Tabel Data -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-x-auto">
+        <div id="table-container" class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-x-auto">
             <table id="data-table" class="w-full text-left border-collapse">
                 <thead>
                     <tr class="bg-gray-100 text-gray-700 text-sm">
@@ -82,16 +104,15 @@
 
     <script>
         // 1. KONFIGURASI PENTING
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxkNW0qW5lr49nDe37teWptHryLxWQZQGZEovCehTyVigyTg3vnUnoYiGijZ5XQ5cIz/exec'; 
+        const SCRIPT_URL = 'MASUKKAN_URL_WEB_APP_ANDA_DISINI'; // <-- JANGAN LUPA GANTI INI LAGI
 
         // 2. DATA DROPDOWN (CONST)
-        // Anda bisa dengan mudah menambah atau mengedit isi array di bawah ini
         const DAFTAR_OPERATOR = ["Andi", "Budi", "Siti"];
         const DAFTAR_BAGIAN = ["Coating", "Polishing", "Surfacing", "Edging", "QC"];
         const DAFTAR_MESIN = ["M-01", "M-02", "M-03", "C-01"];
         const DAFTAR_LENSA = ["Thin-Film AR", "Progressive", "Single Vision", "Bifocal"];
         
-        // 3. SISTEM TOKEN (Database Sederhana di Client)
+        // 3. SISTEM TOKEN 
         const users = {
             "admin-utama": { role: "admin", name: "Administrator" },
             "op-andi": { role: "operator", name: "Andi" },
@@ -99,7 +120,7 @@
             "op-siti": { role: "operator", name: "Siti" }
         };
 
-        // Identifikasi User dari URL
+        // Identifikasi User
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get('token');
         let currentUser = null;
@@ -113,12 +134,15 @@
                 document.getElementById('user-info').innerText = `Masuk sebagai: ${currentUser.name} (${currentUser.role.toUpperCase()})`;
                 
                 if (currentUser.role === 'admin') {
+                    // SETTING ADMIN: Tampilkan form, tampilkan tombol export
                     document.getElementById('admin-form-container').classList.remove('hidden');
                     document.getElementById('btn-export').classList.remove('hidden');
-                    // Render isi dropdown saat admin login
                     populateDropdowns();
                 } else {
+                    // SETTING OPERATOR: Sembunyikan kolom nama, aktifkan CSS mode hp (operator-mode)
                     document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+                    document.getElementById('data-table').classList.add('operator-mode');
+                    document.getElementById('table-container').classList.add('operator-container-mode');
                 }
                 loadData();
             } else {
@@ -126,7 +150,6 @@
             }
         }
 
-        // Fungsi untuk mengisi opsi dropdown HTML dari const array
         function populateDropdowns() {
             const fillSelect = (id, arrayData) => {
                 const select = document.getElementById(id);
@@ -144,7 +167,6 @@
             fillSelect('input-lensa', DAFTAR_LENSA);
         }
 
-        // Fetch Data dari Web App
         async function loadData() {
             document.getElementById('table-body').innerHTML = '<tr><td colspan="8" class="text-center p-4">Memuat data...</td></tr>';
             try {
@@ -157,7 +179,6 @@
             }
         }
 
-        // Render Tabel sesuai Role
         function renderTable() {
             const tbody = document.getElementById('table-body');
             tbody.innerHTML = '';
@@ -177,25 +198,32 @@
                 if (currentUser.role === 'admin') {
                     actionHtml = `<button onclick="deleteData('${row.ID}')" class="text-red-500 hover:text-red-700 font-medium">Hapus</button>`;
                 } else if (currentUser.role === 'operator') {
-                    actualHtml = `<input type="number" id="actual-${row.ID}" value="${row['Actual Qty']}" class="border w-20 p-1 rounded bg-white" placeholder="Qty">`;
-                    actionHtml = `<button onclick="updateActual('${row.ID}')" class="bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200">Simpan</button>`;
+                    // Input HTML untuk operator
+                    actualHtml = `<input type="number" id="actual-${row.ID}" value="${row['Actual Qty']}" class="border rounded bg-white text-center" placeholder="Qty">`;
+                    actionHtml = `<button onclick="updateActual('${row.ID}')" class="bg-blue-100 text-blue-700 rounded hover:bg-blue-200 font-bold">Simpan</button>`;
+                }
+
+                // Format tanggal agar lebih pendek khusus operator (opsional, untuk menghemat ruang)
+                let dateDisplay = row['Tanggal'];
+                if(currentUser.role === 'operator' && dateDisplay.includes('-')) {
+                    const d = new Date(dateDisplay);
+                    if(!isNaN(d)) dateDisplay = `${d.getDate()}/${d.getMonth()+1}`;
                 }
 
                 tr.innerHTML = `
-                    <td class="p-3">${row['Tanggal']}</td>
+                    <td class="p-3">${dateDisplay}</td>
                     ${currentUser.role === 'admin' ? `<td class="p-3 font-medium">${row['Nama Operator']}</td>` : ''}
                     <td class="p-3">${row['Bagian']}</td>
                     <td class="p-3 text-gray-500">${row['Nomor Mesin']}</td>
                     <td class="p-3 text-gray-500">${row['Tipe Lensa']}</td>
-                    <td class="p-3 font-bold">${row['Plan Qty']}</td>
-                    <td class="p-3">${actualHtml}</td>
-                    <td class="p-3">${actionHtml}</td>
+                    <td class="p-3 font-bold text-center">${row['Plan Qty']}</td>
+                    <td class="p-3 text-center">${actualHtml}</td>
+                    <td class="p-3 text-center">${actionHtml}</td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
-        // Fungsi Admin Tambah Plan
         document.getElementById('plan-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = e.target.querySelector('button');
@@ -212,7 +240,6 @@
 
             await fetch(SCRIPT_URL, { method: 'POST', body: formData });
             
-            // Reset form tapi biarkan tanggal tetap (agar input selanjutnya lebih cepat)
             const tanggalSebelumnya = document.getElementById('input-tanggal').value;
             e.target.reset();
             document.getElementById('input-tanggal').value = tanggalSebelumnya;
@@ -221,7 +248,6 @@
             loadData();
         });
 
-        // Fungsi Operator Update Actual
         async function updateActual(id) {
             const actualVal = document.getElementById(`actual-${id}`).value;
             if(!actualVal) return alert('Isi Actual Qty terlebih dahulu');
@@ -240,7 +266,6 @@
             loadData();
         }
 
-        // Fungsi Admin Hapus Data
         async function deleteData(id) {
             if(!confirm('Hapus penugasan ini?')) return;
             const formData = new URLSearchParams();
@@ -250,7 +275,6 @@
             loadData();
         }
 
-        // Fungsi Export Excel (SheetJS)
         document.getElementById('btn-export').addEventListener('click', () => {
             const worksheet = XLSX.utils.json_to_sheet(globalData);
             const workbook = XLSX.utils.book_new();
@@ -258,7 +282,6 @@
             XLSX.writeFile(workbook, "Laporan_Penugasan_Produksi.xlsx");
         });
 
-        // Jalankan aplikasi saat halaman dimuat
         initApp();
     </script>
 </body>
