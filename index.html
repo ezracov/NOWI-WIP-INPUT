@@ -3,270 +3,215 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Form Ke Google Sheet</title>
-    <style>
-        body { font-family: sans-serif; margin: 40px; background-color: #f4f4f9; }
-        form { max-width: 400px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .input-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input, select, textarea { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; background-white: white; }
-        button { background-color: #4CAF50; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; width: 100%; }
-        button:hover { background-color: #45a049; }
-    </style>
+    <title>Sistem Penugasan Operator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
-<body>
+<body class="bg-gray-50 text-gray-800 font-sans antialiased p-4 md:p-8">
 
-    <h2>Hubungi Kami</h2>
-    
-    <form id="submit-to-google-sheet">
-        <!-- PERUBAHAN: Input teks diganti menjadi elemen Select -->
-        <div class="input-group">
-            <label for="nama">Nama:</label>
-            <select id="nama" name="nama" required>
-                <option value="" disabled selected>-- Pilih Nama --</option>
-            </select>
-        </div>
-        
-       <div class="input-group">
-            <label for="mesin">Mesin:</label>
-            <select id="mesin" name="mesin" required>
-                <option value="" disabled selected>-- Pilih Mesin --</option>
-            </select>
+    <div id="app" class="max-w-6xl mx-auto hidden">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Sistem Penugasan Produksi</h1>
+                <p id="user-info" class="text-sm text-gray-500"></p>
+            </div>
+            <button id="btn-export" class="hidden bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700 text-sm font-medium">
+                📥 Export ke Excel
+            </button>
         </div>
 
-       <div class="input-group">
-            <label for="proses">Proses:</label>
-            <select id="proses" name="proses" required>
-                <option value="" disabled selected>-- Pilih Proses --</option>
-            </select>
+        <!-- Form Admin (Hanya muncul jika token Admin) -->
+        <div id="admin-form-container" class="bg-white p-6 rounded-lg shadow-sm border border-gray-100 mb-8 hidden">
+            <h2 class="text-lg font-semibold mb-4">Input Plan Penugasan Baru</h2>
+            <form id="plan-form" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <input type="date" id="input-tanggal" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none">
+                <input type="text" id="input-nama" placeholder="Nama Operator (Cth: Andi)" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none">
+                <input type="text" id="input-bagian" placeholder="Bagian (Cth: Coating / Polishing)" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none">
+                <input type="text" id="input-mesin" placeholder="Nomor Mesin (Cth: M-01)" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none">
+                <input type="text" id="input-lensa" placeholder="Tipe Lensa (Cth: AR Thin Film)" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none">
+                <input type="number" id="input-plan" placeholder="Plan Qty" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none">
+                <button type="submit" class="md:col-span-3 bg-blue-600 text-white py-2 rounded shadow hover:bg-blue-700 font-medium">
+                    Simpan Plan
+                </button>
+            </form>
         </div>
 
-       <div class="input-group">
-            <label for="lensa">Lensa:</label>
-            <select id="lensa" name="lensa" required>
-                <option value="" disabled selected>-- Pilih Lensa --</option>
-            </select>
+        <!-- Tabel Data -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-x-auto">
+            <table id="data-table" class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-100 text-gray-700 text-sm">
+                        <th class="p-3 border-b">Tanggal</th>
+                        <th class="p-3 border-b admin-only">Operator</th>
+                        <th class="p-3 border-b">Bagian</th>
+                        <th class="p-3 border-b">Mesin</th>
+                        <th class="p-3 border-b">Tipe Lensa</th>
+                        <th class="p-3 border-b">Plan Qty</th>
+                        <th class="p-3 border-b">Actual Qty</th>
+                        <th class="p-3 border-b">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body" class="text-sm">
+                    <!-- Data akan dirender lewat JS -->
+                </tbody>
+            </table>
         </div>
+    </div>
 
-        <div class="input-group">
-            <label for="qtyok">Qty Ok:</label>
-            <input type="number" id="qtyok" name="qtyok" required>
-        </div>
-
-        <div class="input-group">
-            <label for="qtyngscrap">Qty NG Scrap:</label>
-            <input type="number" id="qtyngscrap" name="qtyngscrap" required>
-        </div>
-
-        
-        <div class="input-group">
-            <label for="detailng">Detail NG:</label>
-            <textarea id="detailng" name="detailng" rows="4" required></textarea>
-        </div>
-        
-        <button type="submit">Kirim Data</button>
-    </form>
+    <!-- Halaman Error Akses -->
+    <div id="error-screen" class="max-w-md mx-auto mt-20 bg-red-50 p-6 rounded-lg text-center border border-red-200 hidden">
+        <h2 class="text-xl font-bold text-red-700 mb-2">Akses Ditolak</h2>
+        <p class="text-gray-700">Token URL tidak valid atau tidak ditemukan. Pastikan Anda masuk menggunakan link khusus Anda.</p>
+    </div>
 
     <script>
-        // 1. CONSTANT DAFTAR NAMA (Silakan ubah/tambah list ini sesuai kebutuhan)
-        const listKaryawan = [
-        'ALVIN SOPYAN',
-        'ARIO MAULANA NUGROHO',
-        'ASIH SUNARSIH',
-        'BAGAS FITRIANTO',
-        'ELIN DESRIYATI PRIYATNA',
-        'ETI HENRAWATI',
-        'FAJAR ADITYA PRATAMA ',
-        'HERU ANDI MULYANTO',
-        'INDRA HERMAWAN',
-        'ISMET RAHADIAN',
-        'JOKO SURYANTO',
-        'JOKO WIYANTO',
-        'KAMALLUDIN',
-        'KIKI SEPTIADI',
-        'LIA HASANAH',
-        'M IRZI FAHROZI',
-        'MANSYURAH HAMIDA KARSA',
-        'MOCH EZRA REYHANSYAH',
-        'RISKA',
-        'RIZAL ZULFIKAR',
-        'SARINAH',
-        'SHELLY APRILLIANTI',
-        'SITI NURJANAH',
-        'SUSANDI',
-        'SUTRISNO',
-        'VINA ERMANIA',
-        'WAHYU DARMAWAN',
-        'WIDIA NINGSIH',
-        'YULI ROSMANIAR',
-        'ZUHDI SYAKURI'
-        ];
-
-        const listMesin = [
-            'CG-01',
-            'CG-02',
-            'CG-03',
-            'CG-04',
-            'CG-05',
-            'CG-06',
-            'SM-01',
-            'SM-02',
-            'SM-03',
-            'SM-04',
-            'SM-05',
-            'SM-06',
-            'SM-07',
-            'SM-08',
-            'SM-09',
-            'SM-10',
-            'SM-11',
-            'SM-12',
-            'SM-13',
-            'SM-14',
-            'SM-15',
-            'SM-16',
-            'SM-17',
-            'SM-18',
-            'SM-19',
-            'PO-01',
-            'PO-02',
-            'PO-03',
-            'PO-04',
-            'PO-05',
-            'PO-06',
-            'PO-07',
-            'PO-08',
-            'PO-09',
-            'PO-10',
-            'PO-11',
-            'PO-12',
-            'PO-13',
-            'PO-14',
-            'PO-15',
-            'PO-16',
-            'PO-17',
-            'PO-18',
-            'PO-19',
-            'PO-20',
-            'PO-21',
-            'PO-22',
-            'PO-23',
-            'PO-24',
-            'PO-25'
-        ];        
-
-        const listProses = [
-            'CG',
-            'SM',
-            'PO',
-            'PO RP',
-            'PO RWK'
-        ];  
-
-        const listLensa = [
-        'B-4545TG1-BO',
-        'B-4545TG2-BO',
-        'B-4545TG3-CO',
-        'B-EYEPIECE29104-CO',
-        'B-EYEPIECE29105-CO',
-        'B-EYEPIECE29107-CO',
-        'B-GAA1525L1-BO',
-        'B-GAA1525L2-BO',
-        'B-GAA1526L1-BO',
-        'B-GAA1526L2-BO',
-        'B-GAA1527-CO',
-        'B-LA3406-PA',
-        'B-LA5558-BO',
-        'B-LA5559-BO',
-        'B-LA5641-BO',
-        'B-LA5642-BO',
-        'B-LA7021-BOPA',
-        'B-LA7022-BOPA',
-        'B-LA8763-CO',
-        'B-LK0386-CO',
-        'B-LK3214-CO',
-        'B-LK6159-BOPA',
-        'B-LK6160-BOPA',
-        'B-LK6161-PA',
-        'B-LK6167-BO',
-        'B-LK6168-BO',
-        'B-LK6171-CO',
-        'B-LK6172-CO',
-        'B-LK6229-CO',
-        'B-LK6232-CO',
-        'B-LK6236-BO',
-        'B-LK6237-BO',
-        'B-LK6384-BO',
-        'B-LK6642-BO',
-        'B-LK6643-BO',
-        'B-LK6644-BO',
-        'B-LK6645-BO',
-        'B-LK6646-BO',
-        'B-LK6647-BO',
-        'B-LK7020-BO',
-        'B-LK7021-BO',
-        'B-LK7024-BO',
-        'B-LK7025-CO',
-        'B-XA9023101G1-PO',
-        'B-XA9023102G2-PO',
-        'B-XA9023103G3-PO'
-        ];          
-
-        // 2. LOGIKA UNTUK MEMASUKKAN CONST KE DROPDOWN
-        const namaSelect = document.getElementById('nama');
+        // 1. KONFIGURASI PENTING
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxkNW0qW5lr49nDe37teWptHryLxWQZQGZEovCehTyVigyTg3vnUnoYiGijZ5XQ5cIz/exec'; 
         
-        listKaryawan.forEach(nama => {
-            const option = document.createElement('option');
-            option.value = nama;       // Nilai yang dikirim ke Google Sheet
-            option.textContent = nama; // Teks yang muncul di layar browser
-            namaSelect.appendChild(option);
-        });
+        // 2. SISTEM TOKEN (Database Sederhana di Client)
+        // Format token: token=namatoken
+        const users = {
+            "admin-utama": { role: "admin", name: "Administrator" },
+            "op-andi": { role: "operator", name: "Andi" },
+            "op-budi": { role: "operator", name: "Budi" },
+            "op-siti": { role: "operator", name: "Siti" }
+        };
 
-        const mesinSelect = document.getElementById('mesin');
-        
-        listMesin.forEach(mesin => {
-            const option = document.createElement('option');
-            option.value = mesin;       // Nilai yang dikirim ke Google Sheet
-            option.textContent = mesin; // Teks yang muncul di layar browser
-            mesinSelect.appendChild(option);
-        });
+        // Identifikasi User dari URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        let currentUser = null;
+        let globalData = [];
 
-        const prosesSelect = document.getElementById('proses');
-        
-        listProses.forEach(proses => {
-            const option = document.createElement('option');
-            option.value = proses;       // Nilai yang dikirim ke Google Sheet
-            option.textContent = proses; // Teks yang muncul di layar browser
-            prosesSelect.appendChild(option);
-        });
+        // Inisialisasi Aplikasi
+        function initApp() {
+            if (users[token]) {
+                currentUser = users[token];
+                document.getElementById('app').classList.remove('hidden');
+                document.getElementById('user-info').innerText = `Masuk sebagai: ${currentUser.name} (${currentUser.role.toUpperCase()})`;
+                
+                if (currentUser.role === 'admin') {
+                    document.getElementById('admin-form-container').classList.remove('hidden');
+                    document.getElementById('btn-export').classList.remove('hidden');
+                } else {
+                    // Sembunyikan kolom nama operator jika yang login adalah operator itu sendiri
+                    document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+                }
+                loadData();
+            } else {
+                document.getElementById('error-screen').classList.remove('hidden');
+            }
+        }
 
-        const lensaSelect = document.getElementById('lensa');
-        
-        listLensa.forEach(lensa => {
-            const option = document.createElement('option');
-            option.value = lensa;       // Nilai yang dikirim ke Google Sheet
-            option.textContent = lensa; // Teks yang muncul di layar browser
-            lensaSelect.appendChild(option);
-        });
+        // Fetch Data dari Web App
+        async function loadData() {
+            document.getElementById('table-body').innerHTML = '<tr><td colspan="8" class="text-center p-4">Memuat data...</td></tr>';
+            try {
+                const response = await fetch(SCRIPT_URL);
+                globalData = await response.json();
+                renderTable();
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                document.getElementById('table-body').innerHTML = '<tr><td colspan="8" class="text-center p-4 text-red-500">Gagal memuat data</td></tr>';
+            }
+        }
 
-        // 3. PROSES KIRIM DATA (Sama seperti sebelumnya)
-        const scriptURL = 'https://script.google.com/macros/s/AKfycbyDgdM9t1SeVd-Yab4OWuWEfJ4iboEHh90Z0nq0-VHo_-4EsDLbOGCO7FMXVQ2sZFpM/exec';
-        const form = document.getElementById('submit-to-google-sheet');
+        // Render Tabel sesuai Role
+        function renderTable() {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
 
-        form.addEventListener('submit', e => {
+            // Filter data jika user adalah operator
+            let displayData = globalData;
+            if (currentUser.role === 'operator') {
+                displayData = globalData.filter(row => row['Nama Operator'].toLowerCase() === currentUser.name.toLowerCase());
+            }
+
+            displayData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = "border-b hover:bg-gray-50";
+
+                let actualHtml = row['Actual Qty'] || '-';
+                let actionHtml = '-';
+
+                if (currentUser.role === 'admin') {
+                    actionHtml = `<button onclick="deleteData('${row.ID}')" class="text-red-500 hover:text-red-700 font-medium">Hapus</button>`;
+                } else if (currentUser.role === 'operator') {
+                    actualHtml = `<input type="number" id="actual-${row.ID}" value="${row['Actual Qty']}" class="border w-20 p-1 rounded" placeholder="Qty">`;
+                    actionHtml = `<button onclick="updateActual('${row.ID}')" class="bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200">Simpan</button>`;
+                }
+
+                tr.innerHTML = `
+                    <td class="p-3">${row['Tanggal']}</td>
+                    ${currentUser.role === 'admin' ? `<td class="p-3 font-medium">${row['Nama Operator']}</td>` : ''}
+                    <td class="p-3">${row['Bagian']}</td>
+                    <td class="p-3 text-gray-500">${row['Nomor Mesin']}</td>
+                    <td class="p-3 text-gray-500">${row['Tipe Lensa']}</td>
+                    <td class="p-3 font-bold">${row['Plan Qty']}</td>
+                    <td class="p-3">${actualHtml}</td>
+                    <td class="p-3">${actionHtml}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Fungsi Admin Tambah Plan
+        document.getElementById('plan-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            fetch(scriptURL, { method: 'POST', body: new FormData(form)})
-                .then(response => {
-                    alert('Data berhasil dikirim.');
-                    form.reset();
-                })
-                .catch(error => {
-                    console.error('Error!', error.message);
-                    alert('Waduh, ada error saat mengirim data.');
-                });
-        });
-    </script>
+            const btn = e.target.querySelector('button');
+            btn.innerText = "Menyimpan..."; btn.disabled = true;
 
+            const formData = new URLSearchParams();
+            formData.append('action', 'create');
+            formData.append('tanggal', document.getElementById('input-tanggal').value);
+            formData.append('nama', document.getElementById('input-nama').value);
+            formData.append('bagian', document.getElementById('input-bagian').value);
+            formData.append('mesin', document.getElementById('input-mesin').value);
+            formData.append('lensa', document.getElementById('input-lensa').value);
+            formData.append('planQty', document.getElementById('input-plan').value);
+
+            await fetch(SCRIPT_URL, { method: 'POST', body: formData });
+            e.target.reset();
+            btn.innerText = "Simpan Plan"; btn.disabled = false;
+            loadData();
+        });
+
+        // Fungsi Operator Update Actual
+        async function updateActual(id) {
+            const actualVal = document.getElementById(`actual-${id}`).value;
+            if(!actualVal) return alert('Isi Actual Qty terlebih dahulu');
+            
+            const formData = new URLSearchParams();
+            formData.append('action', 'update_actual');
+            formData.append('id', id);
+            formData.append('actualQty', actualVal);
+
+            await fetch(SCRIPT_URL, { method: 'POST', body: formData });
+            alert('Hasil aktual berhasil disimpan!');
+            loadData();
+        }
+
+        // Fungsi Admin Hapus Data
+        async function deleteData(id) {
+            if(!confirm('Hapus penugasan ini?')) return;
+            const formData = new URLSearchParams();
+            formData.append('action', 'delete');
+            formData.append('id', id);
+            await fetch(SCRIPT_URL, { method: 'POST', body: formData });
+            loadData();
+        }
+
+        // Fungsi Export Excel (SheetJS)
+        document.getElementById('btn-export').addEventListener('click', () => {
+            const worksheet = XLSX.utils.json_to_sheet(globalData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Data_Produksi");
+            XLSX.writeFile(workbook, "Laporan_Penugasan_Produksi.xlsx");
+        });
+
+        // Jalankan aplikasi saat halaman dimuat
+        initApp();
+    </script>
 </body>
 </html>
