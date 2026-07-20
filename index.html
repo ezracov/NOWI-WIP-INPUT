@@ -25,12 +25,27 @@
         <div id="admin-form-container" class="bg-white p-6 rounded-lg shadow-sm border border-gray-100 mb-8 hidden">
             <h2 class="text-lg font-semibold mb-4">Input Plan Penugasan Baru</h2>
             <form id="plan-form" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <input type="date" id="input-tanggal" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none">
-                <input type="text" id="input-nama" placeholder="Nama Operator (Cth: Andi)" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none">
-                <input type="text" id="input-bagian" placeholder="Bagian (Cth: Coating / Polishing)" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none">
-                <input type="text" id="input-mesin" placeholder="Nomor Mesin (Cth: M-01)" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none">
-                <input type="text" id="input-lensa" placeholder="Tipe Lensa (Cth: AR Thin Film)" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none">
+                <input type="date" id="input-tanggal" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                
+                <!-- Input text diubah menjadi Select Dropdown -->
+                <select id="input-nama" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                    <option value="" disabled selected>Pilih Operator</option>
+                </select>
+                
+                <select id="input-bagian" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                    <option value="" disabled selected>Pilih Bagian</option>
+                </select>
+                
+                <select id="input-mesin" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                    <option value="" disabled selected>Pilih Nomor Mesin</option>
+                </select>
+                
+                <select id="input-lensa" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                    <option value="" disabled selected>Pilih Tipe Lensa</option>
+                </select>
+
                 <input type="number" id="input-plan" placeholder="Plan Qty" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none">
+                
                 <button type="submit" class="md:col-span-3 bg-blue-600 text-white py-2 rounded shadow hover:bg-blue-700 font-medium">
                     Simpan Plan
                 </button>
@@ -68,9 +83,15 @@
     <script>
         // 1. KONFIGURASI PENTING
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxkNW0qW5lr49nDe37teWptHryLxWQZQGZEovCehTyVigyTg3vnUnoYiGijZ5XQ5cIz/exec'; 
+
+        // 2. DATA DROPDOWN (CONST)
+        // Anda bisa dengan mudah menambah atau mengedit isi array di bawah ini
+        const DAFTAR_OPERATOR = ["Andi", "Budi", "Siti"];
+        const DAFTAR_BAGIAN = ["Coating", "Polishing", "Surfacing", "Edging", "QC"];
+        const DAFTAR_MESIN = ["M-01", "M-02", "M-03", "C-01"];
+        const DAFTAR_LENSA = ["Thin-Film AR", "Progressive", "Single Vision", "Bifocal"];
         
-        // 2. SISTEM TOKEN (Database Sederhana di Client)
-        // Format token: token=namatoken
+        // 3. SISTEM TOKEN (Database Sederhana di Client)
         const users = {
             "admin-utama": { role: "admin", name: "Administrator" },
             "op-andi": { role: "operator", name: "Andi" },
@@ -94,14 +115,33 @@
                 if (currentUser.role === 'admin') {
                     document.getElementById('admin-form-container').classList.remove('hidden');
                     document.getElementById('btn-export').classList.remove('hidden');
+                    // Render isi dropdown saat admin login
+                    populateDropdowns();
                 } else {
-                    // Sembunyikan kolom nama operator jika yang login adalah operator itu sendiri
                     document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
                 }
                 loadData();
             } else {
                 document.getElementById('error-screen').classList.remove('hidden');
             }
+        }
+
+        // Fungsi untuk mengisi opsi dropdown HTML dari const array
+        function populateDropdowns() {
+            const fillSelect = (id, arrayData) => {
+                const select = document.getElementById(id);
+                arrayData.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item;
+                    option.textContent = item;
+                    select.appendChild(option);
+                });
+            };
+
+            fillSelect('input-nama', DAFTAR_OPERATOR);
+            fillSelect('input-bagian', DAFTAR_BAGIAN);
+            fillSelect('input-mesin', DAFTAR_MESIN);
+            fillSelect('input-lensa', DAFTAR_LENSA);
         }
 
         // Fetch Data dari Web App
@@ -122,7 +162,6 @@
             const tbody = document.getElementById('table-body');
             tbody.innerHTML = '';
 
-            // Filter data jika user adalah operator
             let displayData = globalData;
             if (currentUser.role === 'operator') {
                 displayData = globalData.filter(row => row['Nama Operator'].toLowerCase() === currentUser.name.toLowerCase());
@@ -138,7 +177,7 @@
                 if (currentUser.role === 'admin') {
                     actionHtml = `<button onclick="deleteData('${row.ID}')" class="text-red-500 hover:text-red-700 font-medium">Hapus</button>`;
                 } else if (currentUser.role === 'operator') {
-                    actualHtml = `<input type="number" id="actual-${row.ID}" value="${row['Actual Qty']}" class="border w-20 p-1 rounded" placeholder="Qty">`;
+                    actualHtml = `<input type="number" id="actual-${row.ID}" value="${row['Actual Qty']}" class="border w-20 p-1 rounded bg-white" placeholder="Qty">`;
                     actionHtml = `<button onclick="updateActual('${row.ID}')" class="bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200">Simpan</button>`;
                 }
 
@@ -172,7 +211,12 @@
             formData.append('planQty', document.getElementById('input-plan').value);
 
             await fetch(SCRIPT_URL, { method: 'POST', body: formData });
+            
+            // Reset form tapi biarkan tanggal tetap (agar input selanjutnya lebih cepat)
+            const tanggalSebelumnya = document.getElementById('input-tanggal').value;
             e.target.reset();
+            document.getElementById('input-tanggal').value = tanggalSebelumnya;
+
             btn.innerText = "Simpan Plan"; btn.disabled = false;
             loadData();
         });
@@ -186,6 +230,10 @@
             formData.append('action', 'update_actual');
             formData.append('id', id);
             formData.append('actualQty', actualVal);
+
+            const btn = document.querySelector(`button[onclick="updateActual('${id}')"]`);
+            btn.innerText = "...";
+            btn.disabled = true;
 
             await fetch(SCRIPT_URL, { method: 'POST', body: formData });
             alert('Hasil aktual berhasil disimpan!');
