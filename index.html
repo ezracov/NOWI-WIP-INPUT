@@ -1,511 +1,340 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistem Penugasan Operator Lensa</title>
-  <style>
-    :root {
-      --bg: #f4f6f9;
-      --card-bg: #ffffff;
-      --text: #1e293b;
-      --muted: #64748b;
-      --primary: #2563eb;
-      --primary-hover: #1d4ed8;
-      --success: #10b981;
-      --warning: #f59e0b;
-      --danger: #ef4444;
-      --border: #e2e8f0;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    body { background-color: var(--bg); color: var(--text); padding: 12px; max-width: 900px; margin: 0 auto; }
-
-    header {
-      background: var(--card-bg);
-      padding: 16px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      margin-bottom: 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .badge-role {
-      font-size: 12px;
-      font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 20px;
-      text-transform: uppercase;
-    }
-    .role-admin { background: #dbeafe; color: #1e40af; }
-    .role-operator { background: #d1fae5; color: #065f46; }
-    .role-observer { background: #fef3c7; color: #92400e; }
-
-    /* Summary Bar for Observer & Admin */
-    .summary-card {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      padding: 16px;
-      border-radius: 12px;
-      margin-bottom: 16px;
-      display: flex;
-      gap: 16px;
-      align-items: center;
-      justify-content: space-around;
-    }
-    .stat-box { text-align: center; }
-    .stat-val { font-size: 20px; font-weight: 800; color: var(--primary); }
-    .stat-lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; }
-
-    .btn {
-      background: var(--primary);
-      color: white;
-      border: none;
-      padding: 10px 16px;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
-      font-size: 14px;
-      transition: background 0.2s;
-    }
-    .btn:hover { background: var(--primary-hover); }
-    .btn-excel { background: #059669; }
-    .btn-excel:hover { background: #047857; }
-
-    /* Modal Form */
-    .modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.5);
-      z-index: 100;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-    }
-    .modal.active { display: flex; }
-    .modal-content {
-      background: var(--card-bg);
-      width: 100%;
-      max-width: 500px;
-      border-radius: 12px;
-      padding: 20px;
-      max-height: 90vh;
-      overflow-y: auto;
-    }
-    .form-group { margin-bottom: 12px; }
-    .form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
-    .form-group select, .form-group input, .form-group textarea {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      font-size: 14px;
-    }
-    textarea { resize: vertical; }
-
-    /* Compact Landscape Card (Width > Height) */
-    .card-list { display: flex; flex-direction: column; gap: 12px; }
-    .task-card {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 14px 18px;
-      display: grid;
-      grid-template-columns: 2fr 1.5fr 1fr;
-      align-items: center;
-      gap: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-    
-    @media (max-width: 640px) {
-      .task-card { grid-template-columns: 1fr; }
-    }
-
-    .card-info { display: flex; flex-direction: column; gap: 4px; }
-    .card-title { font-weight: 700; font-size: 15px; }
-    .card-sub { font-size: 12px; color: var(--muted); }
-    .card-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
-    .tag { font-size: 10px; padding: 2px 6px; background: #f1f5f9; border-radius: 4px; color: #475569; font-weight: 600; }
-
-    .progress-box { width: 100%; }
-    .progress-bar-bg { background: #e2e8f0; height: 8px; border-radius: 4px; overflow: hidden; margin-top: 4px; }
-    .progress-bar-fill { height: 100%; background: var(--primary); transition: width 0.3s; }
-    .achievement-text { font-size: 12px; font-weight: 700; display: flex; justify-content: space-between; }
-
-    .card-action { text-align: right; }
-    .scrap-preview { font-size: 11px; color: var(--danger); margin-top: 4px; font-style: italic; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Penugasan Operator</title>
+    <style>
+        :root {
+            --bg: #f4f7f6;
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --text: #333;
+            --card-bg: #fff;
+            --border: #e0e0e0;
+        }
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        h1, h2 { color: var(--primary); }
+        .container { max-width: 800px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        
+        /* Form & Inputs */
+        .form-container { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; display: none; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 4px; }
+        button { background-color: var(--accent); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { opacity: 0.9; }
+        .btn-export { background-color: #27ae60; }
+        
+        /* Cards */
+        .card-list { display: flex; flex-direction: column; gap: 15px; }
+        .card { background: var(--card-bg); border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid var(--accent); }
+        .card-header { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9em; color: #7f8c8d; }
+        .card-title { font-size: 1.1em; font-weight: bold; margin-bottom: 10px; }
+        .card-detail { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9em; margin-bottom: 15px; }
+        .achievement { font-weight: bold; color: #27ae60; }
+        
+        /* Utilities */
+        .hidden { display: none !important; }
+        #loading { text-align: center; margin-top: 50px; font-weight: bold; }
+    </style>
 </head>
 <body>
 
-  <header>
-    <div>
-      <h2 style="font-size: 18px;">Penugasan Operator</h2>
-      <span id="userInfo" style="font-size: 12px; color: var(--muted);">Memuat...</span>
-    </div>
-    <div id="headerActions"></div>
-  </header>
-
-  <!-- Summary untuk Admin & Observer -->
-  <div id="summarySection" class="summary-card" style="display: none;">
-    <div class="stat-box">
-      <div class="stat-val" id="statTotalPlan">0</div>
-      <div class="stat-lbl">Total Target</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-val" id="statTotalActual">0</div>
-      <div class="stat-lbl">Total Actual</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-val" id="statAchievement">0%</div>
-      <div class="stat-lbl">Ketercapaian</div>
-    </div>
-  </div>
-
-  <!-- Container Cards List -->
-  <div class="card-list" id="cardContainer">
-    <div style="text-align:center; padding: 40px; color: var(--muted);">Mengambil data penugasan...</div>
-  </div>
-
-  <!-- Modal Input/Edit -->
-  <div class="modal" id="taskModal">
-    <div class="modal-content">
-      <h3 id="modalTitle" style="margin-bottom: 16px;">Input Penugasan Baru</h3>
-      <form id="taskForm">
-        <input type="hidden" id="fieldId">
-        
-        <div id="adminFields">
-          <div class="form-group">
-            <label>Tanggal Produksi</label>
-            <input type="date" id="fieldTanggal" required>
-          </div>
-          <div class="form-group">
-            <label>Nama Operator</label>
-            <select id="fieldOperator" required></select>
-          </div>
-          <div class="form-group">
-            <label>Bagian</label>
-            <select id="fieldBagian" required></select>
-          </div>
-          <div class="form-group">
-            <label>Nomor Mesin</label>
-            <select id="fieldMesin" required></select>
-          </div>
-          <div class="form-group">
-            <label>Tipe Lensa</label>
-            <select id="fieldLensa" required></select>
-          </div>
-          <div class="form-group">
-            <label>Plan Qty</label>
-            <input type="number" id="fieldPlan" min="0" required>
-          </div>
+<div class="container">
+    <div id="loading">Memuat Data...</div>
+    
+    <div id="app" class="hidden">
+        <div class="header">
+            <div>
+                <h1 id="titleRole">Dashboard</h1>
+                <p id="subtitleName">Selamat datang</p>
+            </div>
+            <button id="btnExport" class="btn-export hidden" onclick="exportToExcel()">Export Excel</button>
         </div>
 
-        <div id="operatorFields">
-          <div class="form-group">
-            <label>Actual Qty</label>
-            <input type="number" id="fieldActual" min="0">
-          </div>
-          <div class="form-group">
-            <label>Catatan Scrap (Paragraf 4 Baris)</label>
-            <textarea id="fieldScrap" rows="4" placeholder="Tuliskan catatan detail scrap di sini..."></textarea>
-          </div>
+        <!-- Form Admin -->
+        <div id="adminForm" class="form-container">
+            <h2>Input Plan Produksi</h2>
+            <input type="hidden" id="inputId">
+            
+            <div class="form-group">
+                <label>Tanggal Produksi</label>
+                <input type="date" id="inputTanggal">
+            </div>
+            <div class="form-group">
+                <label>Nama Operator</label>
+                <select id="inputNama"></select>
+            </div>
+            <div class="form-group">
+                <label>Bagian</label>
+                <select id="inputBagian"></select>
+            </div>
+            <div class="form-group">
+                <label>Nomor Mesin</label>
+                <select id="inputMesin"></select>
+            </div>
+            <div class="form-group">
+                <label>Tipe Lensa</label>
+                <select id="inputLensa"></select>
+            </div>
+            <div class="form-group">
+                <label>Plan Qty</label>
+                <input type="number" id="inputPlan">
+            </div>
+            <div class="form-group">
+                <label>Actual Qty</label>
+                <input type="number" id="inputActual">
+            </div>
+            <div class="form-group">
+                <label>Catatan Scrap</label>
+                <textarea id="inputCatatan" rows="4"></textarea>
+            </div>
+            <button onclick="saveData()">Simpan Data</button>
+            <button onclick="resetForm()" style="background:#e74c3c; margin-left:10px;">Batal</button>
         </div>
 
-        <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px;">
-          <button type="button" class="btn" style="background: var(--muted);" onclick="closeModal()">Batal</button>
-          <button type="submit" class="btn" id="btnSave">Simpan</button>
-        </div>
-      </form>
+        <div class="card-list" id="cardContainer"></div>
     </div>
-  </div>
+</div>
 
-  <script>
-    // --- KONFIGURASI URL APPS SCRIPT ---
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbysZRqVKa4ENysrnIZJ-_OXXPWOz0gXhwTDPwGoMZYWMaPfH2AQqXXPHT36tgw0NdEX/exec";
+<script>
+    // --- 1. KONFIGURASI VARIABEL OPTION (CONST) ---
+    const OPT_NAMA = ["Andi", "Budi", "Siti", "Agus"];
+    const OPT_BAGIAN = ["Generating", "Polishing", "Coating", "Edging"];
+    const OPT_MESIN = ["M-01", "M-02", "M-03", "M-04"];
+    const OPT_LENSA = ["Single Vision", "Bifocal", "Progressive", "Lenticular"];
 
-    // --- CONSTANT CHOICES (Sesuai Preferensi) ---
-    const CONST_OPERATOR = ["Budi Santoso", "Siti Rahma", "Agus Wijaya", "Dewi Lestari"];
-    const CONST_BAGIAN = ["Polishing", "Coating", "Edging", "Inspection/QC"];
-    const CONST_NOMOR_MESIN = ["Mesin M-01", "Mesin M-02", "Mesin M-03", "Mesin M-04"];
-    const CONST_TIPE_LENSA = ["Single Vision 1.56", "Progressive 1.67", "Bifocal Flattop", "Blue Shield 1.60"];
+    const API_URL = "https://script.google.com/macros/s/AKfycbxNbyexLtLsA4PUX5WttPLeE_wDWV97eb03OUQYCbeSDfOzlAwkto_Hrl1tmrG-LXw/exec"; 
+    
+    // --- 2. STATE APLIKASI ---
+    let appData = [];
+    let currentUser = { role: null, nama: null };
 
-    // --- CONFIG TOKEN URL ---
-    // Contoh URL Access:
-    // Admin    : index.html?token=admin123
-    // Observer : index.html?token=obs123
-    // Operator : index.html?token=op_budi
-    const TOKENS = {
-      "admin123": { role: "admin", name: "Administrator" },
-      "obs123": { role: "observer", name: "Observer System" },
-      "op_budi": { role: "operator", name: "Budi Santoso" },
-      "op_siti": { role: "operator", name: "Siti Rahma" },
-      "op_agus": { role: "operator", name: "Agus Wijaya" },
-      "op_dewi": { role: "operator", name: "Dewi Lestari" }
+    // --- 3. INISIALISASI & RENDER ---
+    window.onload = () => {
+        populateSelect("inputNama", OPT_NAMA);
+        populateSelect("inputBagian", OPT_BAGIAN);
+        populateSelect("inputMesin", OPT_MESIN);
+        populateSelect("inputLensa", OPT_LENSA);
+        fetchData();
     };
 
-    let currentUser = null;
-    let globalData = [];
-
-    // --- INITIALIZATION ---
-    window.addEventListener("DOMContentLoaded", () => {
-      initAuth();
-      populateDropdowns();
-      fetchData();
-    });
-
-    function initAuth() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const token = urlParams.get("token");
-
-      if (token && TOKENS[token]) {
-        currentUser = TOKENS[token];
-      } else {
-        // Default Fallback jika tanpa Token (Set ke Observer)
-        currentUser = { role: "observer", name: "Guest Observer" };
-      }
-
-      document.getElementById("userInfo").innerHTML = `
-        <strong>${currentUser.name}</strong> 
-        <span class="badge-role role-${currentUser.role}">${currentUser.role}</span>
-      `;
-
-      const actionArea = document.getElementById("headerActions");
-      actionArea.innerHTML = "";
-
-      if (currentUser.role === "admin") {
-        actionArea.innerHTML = `
-          <button class="btn btn-excel" onclick="exportToExcel()">Export Excel</button>
-          <button class="btn" onclick="openModal('create')">+ Input Plan</button>
-        `;
-      } else if (currentUser.role === "observer") {
-        document.getElementById("summarySection").style.display = "flex";
-      }
+    function populateSelect(elementId, arrayData) {
+        const select = document.getElementById(elementId);
+        select.innerHTML = '<option value="">-- Pilih --</option>';
+        arrayData.forEach(item => {
+            select.innerHTML += `<option value="${item}">${item}</option>`;
+        });
     }
 
-    function populateDropdowns() {
-      const fillSelect = (id, list) => {
-        const el = document.getElementById(id);
-        el.innerHTML = list.map(item => `<option value="${item}">${item}</option>`).join("");
-      };
-      fillSelect("fieldOperator", CONST_OPERATOR);
-      fillSelect("fieldBagian", CONST_BAGIAN);
-      fillSelect("fieldMesin", CONST_NOMOR_MESIN);
-      fillSelect("fieldLensa", CONST_TIPE_LENSA);
-    }
-
-    // --- FETCH DATA FROM GOOGLE SHEETS ---
     async function fetchData() {
-      try {
-        const res = await fetch(SCRIPT_URL);
-        globalData = await res.json();
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const userToken = urlParams.get('token');
+
+            if (!userToken) {
+                document.getElementById("loading").innerText = "Token tidak valid atau tidak ditemukan di URL.";
+                return;
+            }
+
+            const response = await fetch(API_URL);
+            const result = await response.json();
+            
+            appData = result.data;
+            const paramData = result.param;
+
+            const userMatch = paramData.find(p => p.token === userToken);
+            if (!userMatch) {
+                document.getElementById("loading").innerText = "Akses ditolak. Token tidak terdaftar.";
+                return;
+            }
+
+            currentUser.role = userMatch.role;
+            currentUser.nama = userMatch.nama_operator;
+
+            setupUI();
+        } catch (error) {
+            document.getElementById("loading").innerText = "Gagal memuat data. Periksa koneksi internet.";
+        }
+    }
+
+    function setupUI() {
+        document.getElementById("loading").classList.add("hidden");
+        document.getElementById("app").classList.remove("hidden");
+        
+        document.getElementById("titleRole").innerText = `Dashboard ${currentUser.role}`;
+        document.getElementById("subtitleName").innerText = currentUser.role === 'Operator' ? `Operator: ${currentUser.nama}` : 'Memantau seluruh aktivitas';
+
+        if (currentUser.role === 'Admin') {
+            document.getElementById("adminForm").style.display = "block";
+            document.getElementById("btnExport").classList.remove("hidden");
+        }
+
         renderCards();
-        if (currentUser.role === "admin" || currentUser.role === "observer") {
-          updateSummary();
-        }
-      } catch (err) {
-        document.getElementById("cardContainer").innerHTML = `<div style="color:var(--danger); text-align:center;">Gagal memuat data. Pastikan SCRIPT_URL telah dikonfigurasi dengan benar.</div>`;
-      }
     }
 
-    // --- RENDER CARDS (WIDTH > HEIGHT COMPACT STYLE) ---
+    // --- 4. RENDER DATA (CARD) ---
     function renderCards() {
-      const container = document.getElementById("cardContainer");
-      container.innerHTML = "";
+        const container = document.getElementById("cardContainer");
+        container.innerHTML = "";
 
-      // Filter Data Berdasarkan Role
-      let filteredData = globalData;
-      if (currentUser.role === "operator") {
-        filteredData = globalData.filter(d => d.Nama_Operator === currentUser.name);
-      }
-
-      if (filteredData.length === 0) {
-        container.innerHTML = `<div style="text-align:center; padding: 30px; color: var(--muted);">Tidak ada penugasan tersedia.</div>`;
-        return;
-      }
-
-      filteredData.forEach(item => {
-        const plan = Number(item.Plan_Qty) || 0;
-        const actual = Number(item.Actual_Qty) || 0;
-        const percent = plan > 0 ? Math.min(Math.round((actual / plan) * 100), 100) : 0;
-
-        const card = document.createElement("div");
-        card.className = "task-card";
-        card.innerHTML = `
-          <div class="card-info">
-            <div class="card-title">${item.Nama_Operator}</div>
-            <div class="card-sub">${item.Tipe_Lensa}</div>
-            <div class="card-meta">
-              <span class="tag">${item.Tanggal_Produksi || '-'}</span>
-              <span class="tag">${item.Bagian || '-'}</span>
-              <span class="tag">${item.Nomor_Mesin || '-'}</span>
-            </div>
-          </div>
-
-          <div class="progress-box">
-            <div class="achievement-text">
-              <span>Capaian: ${actual} / ${plan} pcs</span>
-              <span style="color: ${percent >= 100 ? 'var(--success)' : 'var(--primary)'};">${percent}%</span>
-            </div>
-            <div class="progress-bar-bg">
-              <div class="progress-bar-fill" style="width: ${percent}%; background: ${percent >= 100 ? 'var(--success)' : 'var(--primary)'}"></div>
-            </div>
-            ${item.Catatan_Scrap ? `<div class="scrap-preview">Scrap: "${item.Catatan_Scrap}"</div>` : ''}
-          </div>
-
-          <div class="card-action">
-            ${getActionButton(item)}
-            <div style="font-size: 10px; color: var(--muted); margin-top: 6px;">Updated: ${item.Updated_At || '-'}</div>
-          </div>
-        `;
-        container.appendChild(card);
-      });
-    }
-
-    function getActionButton(item) {
-      if (currentUser.role === "admin") {
-        return `<button class="btn" style="padding: 6px 12px; font-size: 12px;" onclick="openModal('edit', '${item.ID}')">Edit Plan</button>`;
-      } else if (currentUser.role === "operator") {
-        return `<button class="btn" style="padding: 6px 12px; font-size: 12px; background: var(--success);" onclick="openModal('edit', '${item.ID}')">Update Actual</button>`;
-      }
-      return `<span style="font-size: 12px; color: var(--muted); font-weight: 600;">View Only</span>`;
-    }
-
-    function updateSummary() {
-      const summaryBar = document.getElementById("summarySection");
-      summaryBar.style.display = "flex";
-
-      let totalPlan = 0;
-      let totalActual = 0;
-
-      globalData.forEach(d => {
-        totalPlan += Number(d.Plan_Qty) || 0;
-        totalActual += Number(d.Actual_Qty) || 0;
-      });
-
-      const overallPercent = totalPlan > 0 ? Math.round((totalActual / totalPlan) * 100) : 0;
-
-      document.getElementById("statTotalPlan").innerText = totalPlan.toLocaleString();
-      document.getElementById("statTotalActual").innerText = totalActual.toLocaleString();
-      document.getElementById("statAchievement").innerText = overallPercent + "%";
-    }
-
-    // --- MODAL & FORM LOGIC ---
-    function openModal(mode, id = null) {
-      const modal = document.getElementById("taskModal");
-      const adminFields = document.getElementById("adminFields");
-      const operatorFields = document.getElementById("operatorFields");
-      const modalTitle = document.getElementById("modalTitle");
-
-      document.getElementById("taskForm").reset();
-      document.getElementById("fieldId").value = "";
-
-      if (mode === "create") {
-        modalTitle.innerText = "Input Penugasan Baru";
-        adminFields.style.display = "block";
-        operatorFields.style.display = "block";
-        // Default Date Today
-        document.getElementById("fieldTanggal").value = new Date().toISOString().split('T')[0];
-      } else if (mode === "edit") {
-        const item = globalData.find(d => d.ID === id);
-        if (!item) return;
-
-        document.getElementById("fieldId").value = item.ID;
-        document.getElementById("fieldTanggal").value = item.Tanggal_Produksi;
-        document.getElementById("fieldOperator").value = item.Nama_Operator;
-        document.getElementById("fieldBagian").value = item.Bagian;
-        document.getElementById("fieldMesin").value = item.Nomor_Mesin;
-        document.getElementById("fieldLensa").value = item.Tipe_Lensa;
-        document.getElementById("fieldPlan").value = item.Plan_Qty;
-        document.getElementById("fieldActual").value = item.Actual_Qty;
-        document.getElementById("fieldScrap").value = item.Catatan_Scrap;
-
-        if (currentUser.role === "admin") {
-          modalTitle.innerText = "Edit Penugasan (Admin)";
-          adminFields.style.display = "block";
-          operatorFields.style.display = "block";
-        } else if (currentUser.role === "operator") {
-          modalTitle.innerText = "Update Hasil Produksi";
-          adminFields.style.display = "none"; // Operator hanya bisa isi actual & scrap
-          operatorFields.style.display = "block";
+        let displayData = appData;
+        if (currentUser.role === 'Operator') {
+            displayData = appData.filter(d => d.nama_operator === currentUser.nama);
         }
-      }
 
-      modal.classList.add("active");
-    }
+        displayData.forEach(item => {
+            const pct = item.plan_qty ? ((item.actual_qty || 0) / item.plan_qty * 100).toFixed(1) : 0;
+            let cardHtml = `
+                <div class="card">
+                    <div class="card-header">
+                        <span>${formatDate(item.tanggal_produksi)}</span>
+                        <span>Update: ${item.last_updated || '-'}</span>
+                    </div>
+                    <div class="card-title">${item.nomor_mesin} - ${item.tipe_lensa}</div>
+                    <div class="card-detail">
+                        <div><strong>Operator:</strong> ${item.nama_operator}</div>
+                        <div><strong>Bagian:</strong> ${item.bagian}</div>
+                        <div><strong>Plan Qty:</strong> ${item.plan_qty}</div>
+                        <div><strong>Actual Qty:</strong> ${item.actual_qty || 0}</div>
+                    </div>
+            `;
 
-    function closeModal() {
-      document.getElementById("taskModal").classList.remove("active");
-    }
+            if (currentUser.role === 'Admin') {
+                cardHtml += `<button onclick='editAdmin(${JSON.stringify(item)})'>Edit Data</button>`;
+            } 
+            else if (currentUser.role === 'Operator') {
+                cardHtml += `
+                    <div class="form-group">
+                        <label>Actual Qty</label>
+                        <input type="number" id="act_${item.id}" value="${item.actual_qty || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>Catatan Scrap</label>
+                        <textarea id="cat_${item.id}" rows="4">${item.catatan_scrap || ''}</textarea>
+                    </div>
+                    <button onclick="saveOperator('${item.id}')">Update Hasil</button>
+                `;
+            }
+            else if (currentUser.role === 'Observer') {
+                cardHtml += `<div class="achievement">Ketercapaian: ${pct}%</div>
+                             <div style="margin-top:10px; font-size:0.9em;"><strong>Catatan:</strong><br>${item.catatan_scrap || '-'}</div>`;
+            }
 
-    document.getElementById("taskForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const btnSave = document.getElementById("btnSave");
-      btnSave.disabled = true;
-      btnSave.innerText = "Menyimpan...";
-
-      const id = document.getElementById("fieldId").value;
-      const action = id ? "update" : "create";
-
-      const payloadData = {
-        ID: id,
-        Tanggal_Produksi: document.getElementById("fieldTanggal").value,
-        Nama_Operator: document.getElementById("fieldOperator").value,
-        Bagian: document.getElementById("fieldBagian").value,
-        Nomor_Mesin: document.getElementById("fieldMesin").value,
-        Tipe_Lensa: document.getElementById("fieldLensa").value,
-        Plan_Qty: document.getElementById("fieldPlan").value,
-        Actual_Qty: document.getElementById("fieldActual").value,
-        Catatan_Scrap: document.getElementById("fieldScrap").value
-      };
-
-      try {
-        await fetch(SCRIPT_URL, {
-          method: "POST",
-          body: JSON.stringify({ action: action, data: payloadData })
+            cardHtml += `</div>`;
+            container.innerHTML += cardHtml;
         });
-        closeModal();
-        await fetchData();
-      } catch (err) {
-        alert("Gagal menyimpan data.");
-      } finally {
-        btnSave.disabled = false;
-        btnSave.innerText = "Simpan";
-      }
-    });
+    }
 
-    // --- EXPORT TO EXCEL (CSV) ---
+    // --- 5. FUNGSI LOGIKA DATA ---
+    async function postData(payload) {
+        document.getElementById("loading").innerText = "Menyimpan...";
+        document.getElementById("loading").classList.remove("hidden");
+        document.getElementById("app").classList.add("hidden");
+
+        await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+        
+        window.location.reload();
+    }
+
+    function saveData() {
+        const payload = {
+            action: 'save',
+            id: document.getElementById("inputId").value,
+            tanggal_produksi: document.getElementById("inputTanggal").value,
+            nama_operator: document.getElementById("inputNama").value,
+            bagian: document.getElementById("inputBagian").value,
+            nomor_mesin: document.getElementById("inputMesin").value,
+            tipe_lensa: document.getElementById("inputLensa").value,
+            plan_qty: document.getElementById("inputPlan").value,
+            actual_qty: document.getElementById("inputActual").value,
+            catatan_scrap: document.getElementById("inputCatatan").value,
+            last_updated: new Date().toLocaleString('id-ID')
+        };
+        postData(payload);
+    }
+
+    function saveOperator(id) {
+        const item = appData.find(d => d.id == id);
+        const actualVal = document.getElementById(`act_${id}`).value;
+        const catatanVal = document.getElementById(`cat_${id}`).value;
+        
+        const payload = {
+            action: 'save',
+            id: item.id,
+            tanggal_produksi: item.tanggal_produksi,
+            nama_operator: item.nama_operator,
+            bagian: item.bagian,
+            nomor_mesin: item.nomor_mesin,
+            tipe_lensa: item.tipe_lensa,
+            plan_qty: item.plan_qty,
+            actual_qty: actualVal,
+            catatan_scrap: catatanVal,
+            last_updated: new Date().toLocaleString('id-ID')
+        };
+        postData(payload);
+    }
+
+    function editAdmin(item) {
+        document.getElementById("inputId").value = item.id;
+        document.getElementById("inputTanggal").value = formatDateForInput(item.tanggal_produksi);
+        document.getElementById("inputNama").value = item.nama_operator;
+        document.getElementById("inputBagian").value = item.bagian;
+        document.getElementById("inputMesin").value = item.nomor_mesin;
+        document.getElementById("inputLensa").value = item.tipe_lensa;
+        document.getElementById("inputPlan").value = item.plan_qty;
+        document.getElementById("inputActual").value = item.actual_qty;
+        document.getElementById("inputCatatan").value = item.catatan_scrap;
+        window.scrollTo(0, 0);
+    }
+
+    function resetForm() {
+        document.getElementById("inputId").value = "";
+        document.getElementById("inputTanggal").value = "";
+        document.getElementById("inputNama").value = "";
+        document.getElementById("inputBagian").value = "";
+        document.getElementById("inputMesin").value = "";
+        document.getElementById("inputLensa").value = "";
+        document.getElementById("inputPlan").value = "";
+        document.getElementById("inputActual").value = "";
+        document.getElementById("inputCatatan").value = "";
+    }
+
     function exportToExcel() {
-      if (globalData.length === 0) {
-        alert("Tidak ada data untuk di-export.");
-        return;
-      }
-
-      const headers = ["ID", "Tanggal_Produksi", "Nama_Operator", "Bagian", "Nomor_Mesin", "Tipe_Lensa", "Plan_Qty", "Actual_Qty", "Catatan_Scrap", "Updated_At"];
-      let csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n";
-
-      globalData.forEach(row => {
-        const values = headers.map(header => {
-          let val = row[header] || "";
-          val = val.toString().replace(/"/g, '""'); // Escape double quotes
-          return `"${val}"`;
+        let csv = "Tanggal,Nama Operator,Bagian,Mesin,Tipe Lensa,Plan Qty,Actual Qty,Catatan Scrap,Last Update\n";
+        appData.forEach(row => {
+            let r = [
+                formatDate(row.tanggal_produksi), row.nama_operator, row.bagian,
+                row.nomor_mesin, row.tipe_lensa, row.plan_qty, row.actual_qty, 
+                `"${row.catatan_scrap || ''}"`, row.last_updated
+            ];
+            csv += r.join(",") + "\n";
         });
-        csvContent += values.join(",") + "\n";
-      });
-
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", `Penugasan_Operator_${new Date().toISOString().split('T')[0]}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.setAttribute('href', url);
+        a.setAttribute('download', 'Data_Produksi.csv');
+        a.click();
     }
-  </script>
+
+    function formatDate(dateStr) {
+        if(!dateStr) return "-";
+        const d = new Date(dateStr);
+        return isNaN(d) ? dateStr : d.toLocaleDateString('id-ID');
+    }
+    
+    function formatDateForInput(dateStr) {
+        if(!dateStr) return "";
+        const d = new Date(dateStr);
+        return isNaN(d) ? "" : d.toISOString().split('T')[0];
+    }
+</script>
 </body>
 </html>
