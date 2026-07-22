@@ -1,288 +1,337 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Penugasan Operator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <style>
-        /* CSS KHUSUS OPERATOR: Aktif jika tabel diberi class "operator-mode" lewat JS */
-        .operator-mode th, .operator-mode td {
-            padding: 4px 2px !important; /* Jarak atas-bawah 4px, kiri-kanan 2px (sangat rapat) */
-            font-size: 11px !important; /* Ukuran teks diperkecil agar muat di layar HP */
-            word-wrap: break-word;
-            white-space: normal;
-        }
-        .operator-mode input[type="number"] {
-            width: 45px !important; /* Kotak input angka lebih pendek */
-            padding: 2px !important;
-            height: 24px !important;
-            font-size: 11px !important;
-        }
-        .operator-mode button {
-            padding: 2px 6px !important; /* Tombol simpan lebih imut */
-            font-size: 10px !important;
-        }
-        /* Menghilangkan scrollbar pada kontainer tabel khusus operator agar terlihat menyatu */
-        .operator-container-mode {
-            overflow-x: hidden !important; 
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aplikasi Penugasan Operator</title>
+  <style>
+    :root {
+      --bg-color: #f4f6f9;
+      --card-bg: #ffffff;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #10b981;
+      --text-main: #1f2937;
+      --text-muted: #6b7280;
+      --border: #e5e7eb;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg-color); color: var(--text-main); padding: 12px; max-width: 600px; margin: 0 auto; }
+
+    header { background: var(--card-bg); padding: 16px; border-radius: 12px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
+    .role-badge { font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 6px; text-transform: uppercase; background: #e0e7ff; color: #3730a3; }
+
+    .card { background: var(--card-bg); border-radius: 12px; padding: 16px; margin-bottom: 12px; border: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+    .card-title { font-weight: 700; font-size: 16px; margin-bottom: 8px; color: var(--primary); display: flex; justify-content: space-between; }
+    
+    .form-group { margin-bottom: 12px; }
+    label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--text-muted); }
+    select, input, textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: #fff; outline: none; }
+    select:focus, input:focus, textarea:focus { border-color: var(--primary); }
+    textarea { resize: vertical; }
+
+    .btn { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    .btn:hover { background: var(--primary-hover); }
+    .btn-excel { background: var(--success); margin-bottom: 16px; }
+
+    .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; margin: 8px 0; }
+    .data-item { background: #f9fafb; padding: 8px; border-radius: 6px; }
+    .data-item span { display: block; color: var(--text-muted); font-size: 11px; }
+
+    .auth-error { text-align: center; padding: 40px 20px; }
+  </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans antialiased p-2 md:p-8">
+<body>
 
-    <div id="app" class="max-w-6xl mx-auto hidden">
-        <!-- Header -->
-        <div class="flex justify-between items-center mb-4 md:mb-6">
-            <div>
-                <h1 class="text-xl md:text-2xl font-bold text-gray-900">Sistem Penugasan Produksi</h1>
-                <p id="user-info" class="text-xs md:text-sm text-gray-500"></p>
-            </div>
-            <button id="btn-export" class="hidden bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700 text-sm font-medium">
-                📥 Export
-            </button>
+  <div id="app">
+    <!-- Header -->
+    <header id="header-bar" style="display: none;">
+      <div>
+        <h2 style="font-size: 18px;" id="user-title">Penugasan</h2>
+        <span id="user-sub" style="font-size: 12px; color: var(--text-muted);"></span>
+      </div>
+      <span class="role-badge" id="role-tag"></span>
+    </header>
+
+    <!-- Admin Form -->
+    <section id="admin-form-section" class="card" style="display: none;">
+      <h3 style="margin-bottom: 12px; font-size: 15px;">Tambah Task Baru</h3>
+      <form id="form-task">
+        <div class="form-group">
+          <label>Operator</label>
+          <select id="select-operator" required></select>
         </div>
-
-        <!-- Form Admin (Hanya muncul jika token Admin) -->
-        <div id="admin-form-container" class="bg-white p-6 rounded-lg shadow-sm border border-gray-100 mb-8 hidden">
-            <h2 class="text-lg font-semibold mb-4">Input Plan Penugasan Baru</h2>
-            <form id="plan-form" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <input type="date" id="input-tanggal" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-                
-                <select id="input-nama" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-                    <option value="" disabled selected>Pilih Operator</option>
-                </select>
-                
-                <select id="input-bagian" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-                    <option value="" disabled selected>Pilih Bagian</option>
-                </select>
-                
-                <select id="input-mesin" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-                    <option value="" disabled selected>Pilih Nomor Mesin</option>
-                </select>
-                
-                <select id="input-lensa" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-                    <option value="" disabled selected>Pilih Tipe Lensa</option>
-                </select>
-
-                <input type="number" id="input-plan" placeholder="Plan Qty" required class="border p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none">
-                
-                <button type="submit" class="md:col-span-3 bg-blue-600 text-white py-2 rounded shadow hover:bg-blue-700 font-medium">
-                    Simpan Plan
-                </button>
-            </form>
+        <div class="form-group">
+          <label>Bagian</label>
+          <select id="select-bagian" required></select>
         </div>
-
-        <!-- Tabel Data -->
-        <div id="table-container" class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-x-auto">
-            <table id="data-table" class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="bg-gray-100 text-gray-700 text-sm">
-                        <th class="p-3 border-b">Tanggal</th>
-                        <th class="p-3 border-b admin-only">Operator</th>
-                        <th class="p-3 border-b">Bagian</th>
-                        <th class="p-3 border-b">Mesin</th>
-                        <th class="p-3 border-b">Tipe Lensa</th>
-                        <th class="p-3 border-b">Plan Qty</th>
-                        <th class="p-3 border-b">Actual Qty</th>
-                        <th class="p-3 border-b">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="table-body" class="text-sm">
-                    <!-- Data akan dirender lewat JS -->
-                </tbody>
-            </table>
+        <div class="form-group">
+          <label>Nomor Mesin</label>
+          <select id="select-mesin" required></select>
         </div>
+        <div class="form-group">
+          <label>Tipe Lensa</label>
+          <select id="select-lensa" required></select>
+        </div>
+        <div class="form-group">
+          <label>Plan Qty</label>
+          <input type="number" id="input-plan" min="1" required placeholder="0">
+        </div>
+        <button type="submit" class="btn" id="btn-save-task">Simpan Penugasan</button>
+      </form>
+    </section>
+
+    <!-- Excel Export Button -->
+    <button id="btn-export" class="btn btn-excel" style="display: none;" onclick="exportToExcel()">📥 Export ke Excel</button>
+
+    <!-- Task List Container (Cards) -->
+    <div id="task-list"></div>
+
+    <!-- Error Screen -->
+    <div id="auth-error" class="auth-error" style="display: none;">
+      <h3>Akses Ditolak</h3>
+      <p style="color: var(--text-muted); font-size: 14px; margin-top: 8px;">Token URL tidak valid atau tidak ditemukan.</p>
     </div>
+  </div>
 
-    <!-- Halaman Error Akses -->
-    <div id="error-screen" class="max-w-md mx-auto mt-20 bg-red-50 p-6 rounded-lg text-center border border-red-200 hidden">
-        <h2 class="text-xl font-bold text-red-700 mb-2">Akses Ditolak</h2>
-        <p class="text-gray-700">Token URL tidak valid atau tidak ditemukan. Pastikan Anda masuk menggunakan link khusus Anda.</p>
-    </div>
+  <script>
+    // ==========================================
+    // 1. KONFIGURASI CONST & DATA DROPDOWN
+    // ==========================================
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxleGcQnyZE69enepZgZ_mOfPNJtxjuVnfrptDFYBrtWMEjkN2GRUaiiv9kvY0SYhGK/exec";
 
-    <script>
-        // 1. KONFIGURASI PENTING
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxkNW0qW5lr49nDe37teWptHryLxWQZQGZEovCehTyVigyTg3vnUnoYiGijZ5XQ5cIz/exec'; // <-- JANGAN LUPA GANTI INI LAGI
+    const LIST_OPERATOR = ["Budi Santoso", "Siti Rahma", "Joko Widodo", "Andi Wijaya"];
+    const LIST_BAGIAN = ["Surfacing", "Coating", "Quality Control", "Tinting"];
+    const LIST_MESIN = ["Mesin 01", "Mesin 02", "Mesin 03", "Mesin 04"];
+    const LIST_LENSA = ["Single Vision 1.56", "Bifocal Flattop", "Progressive 1.61", "Anti-Blue 1.67"];
 
-        // 2. DATA DROPDOWN (CONST)
-        const DAFTAR_OPERATOR = ["Andi", "Budi", "Siti"];
-        const DAFTAR_BAGIAN = ["Coating", "Polishing", "Surfacing", "Edging", "QC"];
-        const DAFTAR_MESIN = ["M-01", "M-02", "M-03", "C-01"];
-        const DAFTAR_LENSA = ["Thin-Film AR", "Progressive", "Single Vision", "Bifocal"];
-        
-        // 3. SISTEM TOKEN 
-        const users = {
-            "admin-utama": { role: "admin", name: "Administrator" },
-            "op-andi": { role: "operator", name: "Andi" },
-            "op-budi": { role: "operator", name: "Budi" },
-            "op-siti": { role: "operator", name: "Siti" }
-        };
+    // Daftar Token Akses
+    const TOKENS = {
+      "ADMIN-SECRET-001": { role: "admin", name: "Administrator" },
+      "OBS-SECRET-999": { role: "observer", name: "Observer System" },
+      "OP-BUDI-11": { role: "operator", name: "Budi Santoso" },
+      "OP-SITI-22": { role: "operator", name: "Siti Rahma" },
+      "OP-JOKO-33": { role: "operator", name: "Joko Widodo" },
+      "OP-ANDI-44": { role: "operator", name: "Andi Wijaya" }
+    };
 
-        // Identifikasi User
-        const urlParams = new URLSearchParams(window.location.search);
-        const token = urlParams.get('token');
-        let currentUser = null;
-        let globalData = [];
+    let currentAuth = null;
+    let tasksData = [];
 
-        // Inisialisasi Aplikasi
-        function initApp() {
-            if (users[token]) {
-                currentUser = users[token];
-                document.getElementById('app').classList.remove('hidden');
-                document.getElementById('user-info').innerText = `Masuk sebagai: ${currentUser.name} (${currentUser.role.toUpperCase()})`;
-                
-                if (currentUser.role === 'admin') {
-                    // SETTING ADMIN: Tampilkan form, tampilkan tombol export
-                    document.getElementById('admin-form-container').classList.remove('hidden');
-                    document.getElementById('btn-export').classList.remove('hidden');
-                    populateDropdowns();
-                } else {
-                    // SETTING OPERATOR: Sembunyikan kolom nama, aktifkan CSS mode hp (operator-mode)
-                    document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
-                    document.getElementById('data-table').classList.add('operator-mode');
-                    document.getElementById('table-container').classList.add('operator-container-mode');
-                }
-                loadData();
-            } else {
-                document.getElementById('error-screen').classList.remove('hidden');
-            }
-        }
+    // ==========================================
+    // 2. INISIALISASI APLIKASI
+    // ==========================================
+    window.addEventListener("DOMContentLoaded", () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get("token");
 
-        function populateDropdowns() {
-            const fillSelect = (id, arrayData) => {
-                const select = document.getElementById(id);
-                arrayData.forEach(item => {
-                    const option = document.createElement('option');
-                    option.value = item;
-                    option.textContent = item;
-                    select.appendChild(option);
-                });
-            };
-
-            fillSelect('input-nama', DAFTAR_OPERATOR);
-            fillSelect('input-bagian', DAFTAR_BAGIAN);
-            fillSelect('input-mesin', DAFTAR_MESIN);
-            fillSelect('input-lensa', DAFTAR_LENSA);
-        }
-
-        async function loadData() {
-            document.getElementById('table-body').innerHTML = '<tr><td colspan="8" class="text-center p-4">Memuat data...</td></tr>';
-            try {
-                const response = await fetch(SCRIPT_URL);
-                globalData = await response.json();
-                renderTable();
-            } catch (error) {
-                console.error("Error fetching data:", error);
-                document.getElementById('table-body').innerHTML = '<tr><td colspan="8" class="text-center p-4 text-red-500">Gagal memuat data</td></tr>';
-            }
-        }
-
-        function renderTable() {
-            const tbody = document.getElementById('table-body');
-            tbody.innerHTML = '';
-
-            let displayData = globalData;
-            if (currentUser.role === 'operator') {
-                displayData = globalData.filter(row => row['Nama Operator'].toLowerCase() === currentUser.name.toLowerCase());
-            }
-
-            displayData.forEach(row => {
-                const tr = document.createElement('tr');
-                tr.className = "border-b hover:bg-gray-50";
-
-                let actualHtml = row['Actual Qty'] || '-';
-                let actionHtml = '-';
-
-                if (currentUser.role === 'admin') {
-                    actionHtml = `<button onclick="deleteData('${row.ID}')" class="text-red-500 hover:text-red-700 font-medium">Hapus</button>`;
-                } else if (currentUser.role === 'operator') {
-                    // Input HTML untuk operator
-                    actualHtml = `<input type="number" id="actual-${row.ID}" value="${row['Actual Qty']}" class="border rounded bg-white text-center" placeholder="Qty">`;
-                    actionHtml = `<button onclick="updateActual('${row.ID}')" class="bg-blue-100 text-blue-700 rounded hover:bg-blue-200 font-bold">Simpan</button>`;
-                }
-
-                // Format tanggal agar lebih pendek khusus operator (opsional, untuk menghemat ruang)
-                let dateDisplay = row['Tanggal'];
-                if(currentUser.role === 'operator' && dateDisplay.includes('-')) {
-                    const d = new Date(dateDisplay);
-                    if(!isNaN(d)) dateDisplay = `${d.getDate()}/${d.getMonth()+1}`;
-                }
-
-                tr.innerHTML = `
-                    <td class="p-3">${dateDisplay}</td>
-                    ${currentUser.role === 'admin' ? `<td class="p-3 font-medium">${row['Nama Operator']}</td>` : ''}
-                    <td class="p-3">${row['Bagian']}</td>
-                    <td class="p-3 text-gray-500">${row['Nomor Mesin']}</td>
-                    <td class="p-3 text-gray-500">${row['Tipe Lensa']}</td>
-                    <td class="p-3 font-bold text-center">${row['Plan Qty']}</td>
-                    <td class="p-3 text-center">${actualHtml}</td>
-                    <td class="p-3 text-center">${actionHtml}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        document.getElementById('plan-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = e.target.querySelector('button');
-            btn.innerText = "Menyimpan..."; btn.disabled = true;
-
-            const formData = new URLSearchParams();
-            formData.append('action', 'create');
-            formData.append('tanggal', document.getElementById('input-tanggal').value);
-            formData.append('nama', document.getElementById('input-nama').value);
-            formData.append('bagian', document.getElementById('input-bagian').value);
-            formData.append('mesin', document.getElementById('input-mesin').value);
-            formData.append('lensa', document.getElementById('input-lensa').value);
-            formData.append('planQty', document.getElementById('input-plan').value);
-
-            await fetch(SCRIPT_URL, { method: 'POST', body: formData });
-            
-            const tanggalSebelumnya = document.getElementById('input-tanggal').value;
-            e.target.reset();
-            document.getElementById('input-tanggal').value = tanggalSebelumnya;
-
-            btn.innerText = "Simpan Plan"; btn.disabled = false;
-            loadData();
-        });
-
-        async function updateActual(id) {
-            const actualVal = document.getElementById(`actual-${id}`).value;
-            if(!actualVal) return alert('Isi Actual Qty terlebih dahulu');
-            
-            const formData = new URLSearchParams();
-            formData.append('action', 'update_actual');
-            formData.append('id', id);
-            formData.append('actualQty', actualVal);
-
-            const btn = document.querySelector(`button[onclick="updateActual('${id}')"]`);
-            btn.innerText = "...";
-            btn.disabled = true;
-
-            await fetch(SCRIPT_URL, { method: 'POST', body: formData });
-            alert('Hasil aktual berhasil disimpan!');
-            loadData();
-        }
-
-        async function deleteData(id) {
-            if(!confirm('Hapus penugasan ini?')) return;
-            const formData = new URLSearchParams();
-            formData.append('action', 'delete');
-            formData.append('id', id);
-            await fetch(SCRIPT_URL, { method: 'POST', body: formData });
-            loadData();
-        }
-
-        document.getElementById('btn-export').addEventListener('click', () => {
-            const worksheet = XLSX.utils.json_to_sheet(globalData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Data_Produksi");
-            XLSX.writeFile(workbook, "Laporan_Penugasan_Produksi.xlsx");
-        });
-
+      if (token && TOKENS[token]) {
+        currentAuth = TOKENS[token];
         initApp();
-    </script>
+      } else {
+        document.getElementById("auth-error").style.display = "block";
+      }
+    });
+
+    function initApp() {
+      document.getElementById("header-bar").style.display = "flex";
+      document.getElementById("user-title").textContent = currentAuth.name;
+      document.getElementById("user-sub").textContent = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      document.getElementById("role-tag").textContent = currentAuth.role;
+
+      if (currentAuth.role === "admin") {
+        document.getElementById("admin-form-section").style.display = "block";
+        document.getElementById("btn-export").style.display = "block";
+        populateDropdowns();
+      } else if (currentAuth.role === "observer") {
+        document.getElementById("btn-export").style.display = "block";
+      }
+
+      loadData();
+    }
+
+    function populateDropdowns() {
+      fillSelect("select-operator", LIST_OPERATOR);
+      fillSelect("select-bagian", LIST_BAGIAN);
+      fillSelect("select-mesin", LIST_MESIN);
+      fillSelect("select-lensa", LIST_LENSA);
+    }
+
+    function fillSelect(elementId, items) {
+      const select = document.getElementById(elementId);
+      select.innerHTML = '<option value="">-- Pilih --</option>';
+      items.forEach(item => {
+        const opt = document.createElement("option");
+        opt.value = item;
+        opt.textContent = item;
+        select.appendChild(opt);
+      });
+    }
+
+    // ==========================================
+    // 3. FETCH & RENDER DATA
+    // ==========================================
+    async function loadData() {
+      const container = document.getElementById("task-list");
+      container.innerHTML = '<p style="text-align:center; padding: 20px; color: var(--text-muted);">Memuat data...</p>';
+
+      try {
+        const res = await fetch(SCRIPT_URL);
+        tasksData = await res.json();
+        renderCards();
+      } catch (err) {
+        container.innerHTML = '<p style="text-align:center; color: red;">Gagal memuat data.</p>';
+      }
+    }
+
+    function renderCards() {
+      const container = document.getElementById("task-list");
+      container.innerHTML = "";
+
+      let filteredTasks = tasksData;
+      if (currentAuth.role === "operator") {
+        filteredTasks = tasksData.filter(t => t.Operator === currentAuth.name);
+      }
+
+      if (filteredTasks.length === 0) {
+        container.innerHTML = '<p style="text-align:center; padding: 20px; color: var(--text-muted);">Tidak ada tugas tersedia.</p>';
+        return;
+      }
+
+      // Urutkan dari yang terbaru
+      filteredTasks.reverse().forEach(task => {
+        const isOperator = currentAuth.role === "operator";
+        const card = document.createElement("div");
+        card.className = "card";
+
+        card.innerHTML = `
+          <div class="card-title">
+            <span>${task.Tipe_Lensa}</span>
+            <span style="font-size: 12px; color: var(--text-muted);">${task.Tanggal_Jam}</span>
+          </div>
+          <div class="data-grid">
+            <div class="data-item"><span>Operator</span><strong>${task.Operator}</strong></div>
+            <div class="data-item"><span>Bagian / Mesin</span><strong>${task.Bagian} (${task.Nomor_Mesin})</strong></div>
+            <div class="data-item"><span>Plan Qty</span><strong>${task.Plan_Qty} Pcs</strong></div>
+            <div class="data-item"><span>Actual Qty</span><strong style="color: var(--primary);">${task.Actual_Qty || 0} Pcs</strong></div>
+          </div>
+          
+          ${task.Catatan_Scrap ? `
+            <div style="font-size: 12px; background: #fff1f2; padding: 8px; border-radius: 6px; margin-top: 6px; color: #9f1239;">
+              <strong>Catatan Scrap:</strong> ${task.Catatan_Scrap}
+            </div>
+          ` : ''}
+
+          ${isOperator ? `
+            <div style="margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px;">
+              <div class="form-group">
+                <label>Update Actual Qty</label>
+                <input type="number" id="actual-${task.ID}" value="${task.Actual_Qty || ''}" placeholder="0">
+              </div>
+              <div class="form-group">
+                <label>Catatan Scrap</label>
+                <textarea id="scrap-${task.ID}" rows="4" placeholder="Ketik catatan scrap jika ada...">${task.Catatan_Scrap || ''}</textarea>
+              </div>
+              <button class="btn" style="background: var(--success);" onclick="updateOperatorTask('${task.ID}')">Simpan Capaian</button>
+            </div>
+          ` : ''}
+
+          ${task.Last_Updated ? `
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 8px; text-align: right;">
+              Update Terakhir: ${task.Last_Updated}
+            </div>
+          ` : ''}
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // ==========================================
+    // 4. ACTION HANDLERS
+    // ==========================================
+    document.getElementById("form-task").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("btn-save-task");
+      btn.disabled = true;
+      btn.textContent = "Menyimpan...";
+
+      const now = new Date();
+      const formattedDate = `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}`;
+
+      const payload = {
+        action: "create",
+        tanggalJam: formattedDate,
+        operator: document.getElementById("select-operator").value,
+        bagian: document.getElementById("select-bagian").value,
+        nomorMesin: document.getElementById("select-mesin").value,
+        tipeLensa: document.getElementById("select-lensa").value,
+        planQty: document.getElementById("input-plan").value
+      };
+
+      try {
+        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
+        document.getElementById("form-task").reset();
+        await loadData();
+      } catch (err) {
+        alert("Gagal menyimpan penugasan.");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Simpan Penugasan";
+      }
+    });
+
+    async function updateOperatorTask(taskId) {
+      const actualVal = document.getElementById(`actual-${taskId}`).value;
+      const scrapVal = document.getElementById(`scrap-${taskId}`).value;
+
+      const now = new Date();
+      const formattedDate = `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}`;
+
+      const payload = {
+        action: "updateActual",
+        id: taskId,
+        actualQty: actualVal,
+        catatanScrap: scrapVal,
+        lastUpdated: formattedDate
+      };
+
+      try {
+        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
+        alert("Capaian berhasil diperbarui!");
+        await loadData();
+      } catch (err) {
+        alert("Gagal memperbarui data.");
+      }
+    }
+
+    // ==========================================
+    // 5. EXPORT TO EXCEL
+    // ==========================================
+    function exportToExcel() {
+      if (tasksData.length === 0) return alert("Tidak ada data untuk di-export.");
+
+      let tableHtml = `<table border="1"><tr>
+        <th>ID</th><th>Tanggal Jam</th><th>Operator</th><th>Bagian</th><th>Nomor Mesin</th>
+        <th>Tipe Lensa</th><th>Plan Qty</th><th>Actual Qty</th><th>Catatan Scrap</th><th>Last Updated</th>
+      </tr>`;
+
+      tasksData.forEach(row => {
+        tableHtml += `<tr>
+          <td>${row.ID}</td><td>${row.Tanggal_Jam}</td><td>${row.Operator}</td>
+          <td>${row.Bagian}</td><td>${row.Nomor_Mesin}</td><td>${row.Tipe_Lensa}</td>
+          <td>${row.Plan_Qty}</td><td>${row.Actual_Qty}</td><td>${row.Catatan_Scrap}</td>
+          <td>${row.Last_Updated}</td>
+        </tr>`;
+      });
+      tableHtml += `</table>`;
+
+      const blob = new Blob([tableHtml], { type: "application/vnd.ms-excel" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `Laporan_Penugasan_Operator_${new Date().toISOString().slice(0,10)}.xls`;
+      a.click();
+    }
+  </script>
 </body>
 </html>
