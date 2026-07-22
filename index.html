@@ -3,336 +3,724 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aplikasi Penugasan Operator</title>
+  <title>Sistem Penugasan Operator Lensa</title>
   <style>
     :root {
-      --bg-color: #f4f6f9;
+      --bg: #f4f6f9;
       --card-bg: #ffffff;
+      --text: #1e293b;
+      --muted: #64748b;
       --primary: #2563eb;
       --primary-hover: #1d4ed8;
       --success: #10b981;
-      --text-main: #1f2937;
-      --text-muted: #6b7280;
-      --border: #e5e7eb;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --border: #e2e8f0;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background-color: var(--bg-color); color: var(--text-main); padding: 12px; max-width: 600px; margin: 0 auto; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 12px; max-width: 900px; margin: 0 auto; }
 
-    header { background: var(--card-bg); padding: 16px; border-radius: 12px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
-    .role-badge { font-size: 12px; font-weight: 600; padding: 4px 8px; border-radius: 6px; text-transform: uppercase; background: #e0e7ff; color: #3730a3; }
+    header {
+      background: var(--card-bg);
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
 
-    .card { background: var(--card-bg); border-radius: 12px; padding: 16px; margin-bottom: 12px; border: 1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-    .card-title { font-weight: 700; font-size: 16px; margin-bottom: 8px; color: var(--primary); display: flex; justify-content: space-between; }
-    
+    .badge-role {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+    }
+    .role-admin { background: #dbeafe; color: #1e40af; }
+    .role-operator { background: #d1fae5; color: #065f46; }
+    .role-observer { background: #fef3c7; color: #92400e; }
+
+    /* Summary Bar for Observer & Admin */
+    .summary-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      justify-content: space-around;
+    }
+    .stat-box { text-align: center; }
+    .stat-val { font-size: 20px; font-weight: 800; color: var(--primary); }
+    .stat-lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; }
+
+    .btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+    .btn:hover { background: var(--primary-hover); }
+    .btn-excel { background: #059669; }
+    .btn-excel:hover { background: #047857; }
+
+    /* Modal Form */
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal.active { display: flex; }
+    .modal-content {
+      background: var(--card-bg);
+      width: 100%;
+      max-width: 500px;
+      border-radius: 12px;
+      padding: 20px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
     .form-group { margin-bottom: 12px; }
-    label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--text-muted); }
-    select, input, textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: #fff; outline: none; }
-    select:focus, input:focus, textarea:focus { border-color: var(--primary); }
+    .form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+    .form-group select, .form-group input, .form-group textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 14px;
+    }
     textarea { resize: vertical; }
 
-    .btn { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; }
-    .btn:hover { background: var(--primary-hover); }
-    .btn-excel { background: var(--success); margin-bottom: 16px; }
+    /* Compact Landscape Card (Width > Height) */
+    .card-list { display: flex; flex-direction: column; gap: 12px; }
+    .task-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      display: grid;
+      grid-template-columns: 2fr 1.5fr 1fr;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    @media (max-width: 640px) {
+      .task-card { grid-template-columns: 1fr; }
+    }
 
-    .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; margin: 8px 0; }
-    .data-item { background: #f9fafb; padding: 8px; border-radius: 6px; }
-    .data-item span { display: block; color: var(--text-muted); font-size: 11px; }
+    .card-info { display: flex; flex-direction: column; gap: 4px; }
+    .card-title { font-weight: 700; font-size: 15px; }
+    .card-sub { font-size: 12px; color: var(--muted); }
+    .card-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+    .tag { font-size: 10px; padding: 2px 6px; background: #f1f5f9; border-radius: 4px; color: #475569; font-weight: 600; }
 
-    .auth-error { text-align: center; padding: 40px 20px; }
+    .progress-box { width: 100%; }
+    .progress-bar-bg { background: #e2e8f0; height: 8px; border-radius: 4px; overflow: hidden; margin-top: 4px; }
+    .progress-bar-fill { height: 100%; background: var(--primary); transition: width 0.3s; }
+    .achievement-text { font-size: 12px; font-weight: 700; display: flex; justify-content: space-between; }
+
+    .card-action { text-align: right; }
+    .scrap-preview { font-size: 11px; color: var(--danger); margin-top: 4px; font-style: italic; }
   </style>
 </head>
 <body>
 
-  <div id="app">
-    <!-- Header -->
-    <header id="header-bar" style="display: none;">
-      <div>
-        <h2 style="font-size: 18px;" id="user-title">Penugasan</h2>
-        <span id="user-sub" style="font-size: 12px; color: var(--text-muted);"></span>
-      </div>
-      <span class="role-badge" id="role-tag"></span>
-    </header>
+  <header>
+    <div>
+      <h2 style="font-size: 18px;">Penugasan Operator</h2>
+      <span id="userInfo" style="font-size: 12px; color: var(--muted);">Memuat...</span>
+    </div>
+    <div id="headerActions"></div>
+  </header>
 
-    <!-- Admin Form -->
-    <section id="admin-form-section" class="card" style="display: none;">
-      <h3 style="margin-bottom: 12px; font-size: 15px;">Tambah Task Baru</h3>
-      <form id="form-task">
-        <div class="form-group">
-          <label>Operator</label>
-          <select id="select-operator" required></select>
+  <!-- Summary untuk Admin & Observer -->
+  <div id="summarySection" class="summary-card" style="display: none;">
+    <div class="stat-box">
+      <div class="stat-val" id="statTotalPlan">0</div>
+      <div class="stat-lbl">Total Target</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" id="statTotalActual">0</div>
+      <div class="stat-lbl">Total Actual</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" id="statAchievement">0%</div>
+      <div class="stat-lbl">Ketercapaian</div>
+    </div>
+  </div>
+
+  <!-- Container Cards List -->
+  <div class="card-list" id="cardContainer">
+    <div style="text-align:center; padding: 40px; color: var(--muted);">Mengambil data penugasan...</div>
+  </div>
+
+  <!-- Modal Input/Edit -->
+  <div class="modal" id="taskModal">
+    <div class="modal-content">
+      <h3 id="modalTitle" style="margin-bottom: 16px;">Input Penugasan Baru</h3>
+      <form id="taskForm">
+        <input type="hidden" id="fieldId">
+        
+        <div id="adminFields">
+          <div class="form-group">
+            <label>Tanggal Produksi</label>
+            <input type="date" id="fieldTanggal" required>
+          </div>
+          <div class="form-group">
+            <label>Nama Operator</label>
+            <select id="fieldOperator" required></select>
+          </div>
+          <div class="form-group">
+            <label>Bagian</label>
+            <select id="fieldBagian" required></select>
+          </div>
+          <div class="form-group">
+            <label>Nomor Mesin</label>
+            <select id="fieldMesin" required></select>
+          </div>
+          <div class="form-group">
+            <label>Tipe Lensa</label>
+            <select id="fieldLensa" required></select>
+          </div>
+          <div class="form-group">
+            <label>Plan Qty</label>
+            <input type="number" id="fieldPlan" min="0" required>
+          </div>
         </div>
-        <div class="form-group">
-          <label>Bagian</label>
-          <select id="select-bagian" required></select>
+
+        <div id="operatorFields">
+          <div class="form-group">
+            <label>Actual Qty</label>
+            <input type="number" id="fieldActual" min="0">
+          </div>
+          <div class="form-group">
+            <label>Catatan Scrap (Paragraf 4 Baris)</label>
+            <textarea id="fieldScrap" rows="4" placeholder="Tuliskan catatan detail scrap di sini..."></textarea>
+          </div>
         </div>
-        <div class="form-group">
-          <label>Nomor Mesin</label>
-          <select id="select-mesin" required></select>
+
+        <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px;">
+          <button type="button" class="btn" style="background: var(--muted);" onclick="closeModal()">Batal</button>
+          <button type="submit" class="btn" id="btnSave">Simpan</button>
         </div>
-        <div class="form-group">
-          <label>Tipe Lensa</label>
-          <select id="select-lensa" required></select>
-        </div>
-        <div class="form-group">
-          <label>Plan Qty</label>
-          <input type="number" id="input-plan" min="1" required placeholder="0">
-        </div>
-        <button type="submit" class="btn" id="btn-save-task">Simpan Penugasan</button>
       </form>
-    </section>
-
-    <!-- Excel Export Button -->
-    <button id="btn-export" class="btn btn-excel" style="display: none;" onclick="exportToExcel()">📥 Export ke Excel</button>
-
-    <!-- Task List Container (Cards) -->
-    <div id="task-list"></div>
-
-    <!-- Error Screen -->
-    <div id="auth-error" class="auth-error" style="display: none;">
-      <h3>Akses Ditolak</h3>
-      <p style="color: var(--text-muted); font-size: 14px; margin-top: 8px;">Token URL tidak valid atau tidak ditemukan.</p>
     </div>
   </div>
 
   <script>
-    // ==========================================
-    // 1. KONFIGURASI CONST & DATA DROPDOWN
-    // ==========================================
-    const SCRIPT_URL = "URL_GOOGLE_APPS_SCRIPT_ANDA_DI_SINI";
+    // --- KONFIGURASI URL APPS SCRIPT ---
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxleGcQnyZE69enepZgZ_mOfPNJtxjuVnfrptDFYBrtWMEjkN2GRUaiiv9kvY0SYhGK/exec";
 
-    const LIST_OPERATOR = ["Budi Santoso", "Siti Rahma", "Joko Widodo", "Andi Wijaya"];
-    const LIST_BAGIAN = ["Surfacing", "Coating", "Quality Control", "Tinting"];
-    const LIST_MESIN = ["Mesin 01", "Mesin 02", "Mesin 03", "Mesin 04"];
-    const LIST_LENSA = ["Single Vision 1.56", "Bifocal Flattop", "Progressive 1.61", "Anti-Blue 1.67"];
+    // --- CONSTANT CHOICES (Sesuai Preferensi) ---
+    const CONST_OPERATOR = [
 
-    // Daftar Token Akses
+        "ALVIN SOPYAN",
+        "ARIO MAULANA NUGROHO",
+        "ASIH SUNARSIH",
+        "BAGAS FITRIANTO",
+        "ELIN DESRIYATI PRIYATNA",
+        "ETI HENRAWATI",
+        "FAJAR ADITYA PRATAMA ",
+        "HERU ANDI MULYANTO",
+        "INDRA HERMAWAN",
+        "ISMET RAHADIAN",
+        "JOKO SURYANTO",
+        "JOKO WIYANTO",
+        "KAMALLUDIN",
+        "KIKI SEPTIADI",
+        "LIA HASANAH",
+        "M IRZI FAHROZI",
+        "MANSYURAH HAMIDA KARSA",
+        "MOCH EZRA REYHANSYAH",
+        "RISKA",
+        "RIZAL ZULFIKAR",
+        "SARINAH",
+        "SHELLY APRILLIANTI",
+        "SITI NURJANAH",
+        "SUSANDI",
+        "SUTRISNO",
+        "VINA ERMANIA",
+        "WAHYU DARMAWAN",
+        "WIDIA NINGSIH",
+        "YULI ROSMANIAR",
+        "ZUHDI SYAKURI"
+
+    ];
+    const CONST_BAGIAN = ["CG", "SM", "PO", "PO RP", "PO RWK"];
+    const CONST_NOMOR_MESIN = [
+        "CG-01",
+        "CG-02",
+        "CG-03",
+        "CG-04",
+        "CG-05",
+        "CG-06",
+        "SM-01",
+        "SM-02",
+        "SM-03",
+        "SM-04",
+        "SM-05",
+        "SM-06",
+        "SM-07",
+        "SM-08",
+        "SM-09",
+        "SM-10",
+        "SM-11",
+        "SM-12",
+        "SM-13",
+        "SM-14",
+        "SM-15",
+        "SM-16",
+        "SM-17",
+        "SM-18",
+        "SM-19",
+        "PO-01",
+        "PO-02",
+        "PO-03",
+        "PO-04",
+        "PO-05",
+        "PO-06",
+        "PO-07",
+        "PO-08",
+        "PO-09",
+        "PO-10",
+        "PO-11",
+        "PO-12",
+        "PO-13",
+        "PO-14",
+        "PO-15",
+        "PO-16",
+        "PO-17",
+        "PO-18",
+        "PO-19",
+        "PO-20",
+        "PO-21",
+        "PO-22",
+        "PO-23",
+        "PO-24",
+        "PO-25"
+    ];
+    const CONST_TIPE_LENSA = [
+"B2-GM00382C-PO",
+"B2-LU0756-BOPA",
+"B-4545TG1-BO",
+"B-4545TG1G2-BO",
+"B-4545TG2-BO",
+"B-4545TG3-CO",
+"B-EYEPIECE29104-CO",
+"B-EYEPIECE29105-CO",
+"B-EYEPIECE29107-CO",
+"B-GAA1525-BO",
+"B-GAA1525L1-BO",
+"B-GAA1525L2-BO",
+"B-GAA1526-BO",
+"B-GAA1526L1-BO",
+"B-GAA1526L2-BO",
+"B-GAA1527-CO",
+"B-GM00382C-PO",
+"B-GR2100012X-BOPA",
+"B-GR2100112X-BOPA",
+"B-GR2100212X-BOPA",
+"B-GR21003-BOPA",
+"B-GR21004-BOPA",
+"B-GR21005-BOPA",
+"B-GR2100812X-PA",
+"B-LA3406-PA",
+"B-LA5558-BO",
+"B-LA5559-BO",
+"B-LA5641-BO",
+"B-LA5642-BO",
+"B-LA7021-BOPA",
+"B-LA7022-BOPA",
+"B-LA8346-CO",
+"B-LA8763-CO",
+"B-LF398AG1-CO",
+"B-LF398AG2-BO",
+"B-LF398AG2G3-BO",
+"B-LF398AG3-BO",
+"B-LF398AG4-BO",
+"B-LF398AG4G5-BO",
+"B-LF398AG5-BO",
+"B-LF398AG6-CO",
+"B-LK0386-CO",
+"B-LK3214-CO",
+"B-LK6159-BOPA",
+"B-LK6160-BOPA",
+"B-LK6161-PA",
+"B-LK6167-BO",
+"B-LK6168-BO",
+"B-LK6171-CO",
+"B-LK6172-CO",
+"B-LK6174-CO",
+"B-LK6175-CO",
+"B-LK6176-CO",
+"B-LK6177-CO",
+"B-LK6178-CO",
+"B-LK6179-CO",
+"B-LK6229-CO",
+"B-LK6232-CO",
+"B-LK6236-BO",
+"B-LK6237-BO",
+"B-LK6384-BO",
+"B-LK6642-BO",
+"B-LK6643-BO",
+"B-LK6644-BO",
+"B-LK6645-BO",
+"B-LK6646-BO",
+"B-LK6647-BO",
+"B-LK7020-BO",
+"B-LK7021-BO",
+"B-LK7022-BO",
+"B-LK7023-BO",
+"B-LK7024-BO",
+"B-LK7025-CO",
+"B-LU0214-BO",
+"B-LU0246-BO",
+"B-LU0756-BOPA",
+"B-LU3025-BO",
+"B-LU3026-BO",
+"B-LU3027-BO",
+"B-LU3135-BO",
+"B-LU3136-BOPA",
+"B-LU3138-BO",
+"B-LU3239-BO",
+"B-LU3240-BO",
+"B-LU3241-BO",
+"B-TW3300070L7-CO",
+"B-TW3300080L8-CO",
+"B-TW330010L1-PA",
+"B-TW3300110L11-CO",
+"B-TW3300120L12-CO",
+"B-TW3350030L3/4/5-BOTPA",
+"B-TW3350030L3-BOTPA",
+"B-TW3350030L4-BOTPA",
+"B-TW3350030L5-BOTPA",
+"B-TW3350090L10-BO",
+"B-TW3350090L9/10",
+"B-TW3350090L9-BO",
+"B-TW3350130L13/14",
+"B-TW3350130L13-BO",
+"B-TW3350130L14-BO",
+"B-XA9023101G1-PO",
+"B-XA9023102G2-PO",
+"B-XA9023103G3-PO"
+];
+
+    // --- CONFIG TOKEN URL ---
+    // Contoh URL Access:
+    // Admin    : index.html?token=admin123
+    // Observer : index.html?token=obs123
+    // Operator : index.html?token=op_budi
     const TOKENS = {
       "ADMIN-SECRET-001": { role: "admin", name: "Administrator" },
       "OBS-SECRET-999": { role: "observer", name: "Observer System" },
-      "OP-BUDI-11": { role: "operator", name: "Budi Santoso" },
-      "OP-SITI-22": { role: "operator", name: "Siti Rahma" },
-      "OP-JOKO-33": { role: "operator", name: "Joko Widodo" },
-      "OP-ANDI-44": { role: "operator", name: "Andi Wijaya" }
+"26050034-671": { role: "operator", name: "ALVIN SOPYAN" },
+"24120025-850": { role: "operator", name: "ARIO MAULANA NUGROHO" },
+"24050015-553": { role: "operator", name: "ASIH SUNARSIH" },
+"26050033-443": { role: "operator", name: "BAGAS FITRIANTO" },
+"24080019-284": { role: "operator", name: "ELIN DESRIYATI PRIYATNA" },
+"24060018-175": { role: "operator", name: "ETI HENRAWATI" },
+"26060035-141": { role: "operator", name: "FAJAR ADITYA PRATAMA " },
+"24050016-336": { role: "operator", name: "HERU ANDI MULYANTO" },
+"23120012-557": { role: "operator", name: "INDRA HERMAWAN" },
+"23030004-830": { role: "operator", name: "ISMET RAHADIAN" },
+"24010013-121": { role: "operator", name: "JOKO SURYANTO" },
+"23030002-845": { role: "operator", name: "JOKO WIYANTO" },
+"23030006-806": { role: "operator", name: "KAMALLUDIN" },
+"23030001-561": { role: "operator", name: "KAZUHIRO SHIMAZU" },
+"23080008-949": { role: "operator", name: "KENJI SHIMAZU" },
+"24080020-370": { role: "operator", name: "KIKI SEPTIADI" },
+"25090030-606": { role: "operator", name: "LIA HASANAH" },
+"25010026-504": { role: "operator", name: "M IRZI FAHROZI" },
+"24060017-489": { role: "operator", name: "MANSYURAH HAMIDA KARSA" },
+"23030007-551": { role: "operator", name: "MOCH EZRA REYHANSYAH" },
+"25010027-305": { role: "operator", name: "RISKA" },
+"24120024-523": { role: "operator", name: "RIZAL ZULFIKAR" },
+"25010028-927": { role: "operator", name: "SARINAH" },
+"25030029-103": { role: "operator", name: "SHELLY APRILLIANTI" },
+"24080021-277": { role: "operator", name: "SITI NURJANAH" },
+"23120011-766": { role: "operator", name: "SUSANDI" },
+"23030003-373": { role: "operator", name: "SUTRISNO" },
+"24120022-508": { role: "operator", name: "VINA ERMANIA" },
+"26050031-953": { role: "operator", name: "WAHYU DARMAWAN" },
+"24120023-848": { role: "operator", name: "WIDIA NINGSIH" },
+"23030005-592": { role: "operator", name: "YULI ROSMANIAR" },
+"23100009-918": { role: "operator", name: "ZUHDI SYAKURI" }
     };
 
-    let currentAuth = null;
-    let tasksData = [];
+    let currentUser = null;
+    let globalData = [];
 
-    // ==========================================
-    // 2. INISIALISASI APLIKASI
-    // ==========================================
+    // --- INITIALIZATION ---
     window.addEventListener("DOMContentLoaded", () => {
+      initAuth();
+      populateDropdowns();
+      fetchData();
+    });
+
+    function initAuth() {
       const urlParams = new URLSearchParams(window.location.search);
       const token = urlParams.get("token");
 
       if (token && TOKENS[token]) {
-        currentAuth = TOKENS[token];
-        initApp();
+        currentUser = TOKENS[token];
       } else {
-        document.getElementById("auth-error").style.display = "block";
-      }
-    });
-
-    function initApp() {
-      document.getElementById("header-bar").style.display = "flex";
-      document.getElementById("user-title").textContent = currentAuth.name;
-      document.getElementById("user-sub").textContent = new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-      document.getElementById("role-tag").textContent = currentAuth.role;
-
-      if (currentAuth.role === "admin") {
-        document.getElementById("admin-form-section").style.display = "block";
-        document.getElementById("btn-export").style.display = "block";
-        populateDropdowns();
-      } else if (currentAuth.role === "observer") {
-        document.getElementById("btn-export").style.display = "block";
+        // Default Fallback jika tanpa Token (Set ke Observer)
+        currentUser = { role: "observer", name: "Guest Observer" };
       }
 
-      loadData();
+      document.getElementById("userInfo").innerHTML = `
+        <strong>${currentUser.name}</strong> 
+        <span class="badge-role role-${currentUser.role}">${currentUser.role}</span>
+      `;
+
+      const actionArea = document.getElementById("headerActions");
+      actionArea.innerHTML = "";
+
+      if (currentUser.role === "admin") {
+        actionArea.innerHTML = `
+          <button class="btn btn-excel" onclick="exportToExcel()">Export Excel</button>
+          <button class="btn" onclick="openModal('create')">+ Input Plan</button>
+        `;
+      } else if (currentUser.role === "observer") {
+        document.getElementById("summarySection").style.display = "flex";
+      }
     }
 
     function populateDropdowns() {
-      fillSelect("select-operator", LIST_OPERATOR);
-      fillSelect("select-bagian", LIST_BAGIAN);
-      fillSelect("select-mesin", LIST_MESIN);
-      fillSelect("select-lensa", LIST_LENSA);
+      const fillSelect = (id, list) => {
+        const el = document.getElementById(id);
+        el.innerHTML = list.map(item => `<option value="${item}">${item}</option>`).join("");
+      };
+      fillSelect("fieldOperator", CONST_OPERATOR);
+      fillSelect("fieldBagian", CONST_BAGIAN);
+      fillSelect("fieldMesin", CONST_NOMOR_MESIN);
+      fillSelect("fieldLensa", CONST_TIPE_LENSA);
     }
 
-    function fillSelect(elementId, items) {
-      const select = document.getElementById(elementId);
-      select.innerHTML = '<option value="">-- Pilih --</option>';
-      items.forEach(item => {
-        const opt = document.createElement("option");
-        opt.value = item;
-        opt.textContent = item;
-        select.appendChild(opt);
-      });
-    }
-
-    // ==========================================
-    // 3. FETCH & RENDER DATA
-    // ==========================================
-    async function loadData() {
-      const container = document.getElementById("task-list");
-      container.innerHTML = '<p style="text-align:center; padding: 20px; color: var(--text-muted);">Memuat data...</p>';
-
+    // --- FETCH DATA FROM GOOGLE SHEETS ---
+    async function fetchData() {
       try {
         const res = await fetch(SCRIPT_URL);
-        tasksData = await res.json();
+        globalData = await res.json();
         renderCards();
+        if (currentUser.role === "admin" || currentUser.role === "observer") {
+          updateSummary();
+        }
       } catch (err) {
-        container.innerHTML = '<p style="text-align:center; color: red;">Gagal memuat data.</p>';
+        document.getElementById("cardContainer").innerHTML = `<div style="color:var(--danger); text-align:center;">Gagal memuat data. Pastikan SCRIPT_URL telah dikonfigurasi dengan benar.</div>`;
       }
     }
 
+    // --- RENDER CARDS (WIDTH > HEIGHT COMPACT STYLE) ---
     function renderCards() {
-      const container = document.getElementById("task-list");
+      const container = document.getElementById("cardContainer");
       container.innerHTML = "";
 
-      let filteredTasks = tasksData;
-      if (currentAuth.role === "operator") {
-        filteredTasks = tasksData.filter(t => t.Operator === currentAuth.name);
+      // Filter Data Berdasarkan Role
+      let filteredData = globalData;
+      if (currentUser.role === "operator") {
+        filteredData = globalData.filter(d => d.Nama_Operator === currentUser.name);
       }
 
-      if (filteredTasks.length === 0) {
-        container.innerHTML = '<p style="text-align:center; padding: 20px; color: var(--text-muted);">Tidak ada tugas tersedia.</p>';
+      if (filteredData.length === 0) {
+        container.innerHTML = `<div style="text-align:center; padding: 30px; color: var(--muted);">Tidak ada penugasan tersedia.</div>`;
         return;
       }
 
-      // Urutkan dari yang terbaru
-      filteredTasks.reverse().forEach(task => {
-        const isOperator = currentAuth.role === "operator";
+      filteredData.forEach(item => {
+        const plan = Number(item.Plan_Qty) || 0;
+        const actual = Number(item.Actual_Qty) || 0;
+        const percent = plan > 0 ? Math.min(Math.round((actual / plan) * 100), 100) : 0;
+
         const card = document.createElement("div");
-        card.className = "card";
-
+        card.className = "task-card";
         card.innerHTML = `
-          <div class="card-title">
-            <span>${task.Tipe_Lensa}</span>
-            <span style="font-size: 12px; color: var(--text-muted);">${task.Tanggal_Jam}</span>
+          <div class="card-info">
+            <div class="card-title">${item.Nama_Operator}</div>
+            <div class="card-sub">${item.Tipe_Lensa}</div>
+            <div class="card-meta">
+              <span class="tag">${item.Tanggal_Produksi || '-'}</span>
+              <span class="tag">${item.Bagian || '-'}</span>
+              <span class="tag">${item.Nomor_Mesin || '-'}</span>
+            </div>
           </div>
-          <div class="data-grid">
-            <div class="data-item"><span>Operator</span><strong>${task.Operator}</strong></div>
-            <div class="data-item"><span>Bagian / Mesin</span><strong>${task.Bagian} (${task.Nomor_Mesin})</strong></div>
-            <div class="data-item"><span>Plan Qty</span><strong>${task.Plan_Qty} Pcs</strong></div>
-            <div class="data-item"><span>Actual Qty</span><strong style="color: var(--primary);">${task.Actual_Qty || 0} Pcs</strong></div>
+
+          <div class="progress-box">
+            <div class="achievement-text">
+              <span>Capaian: ${actual} / ${plan} pcs</span>
+              <span style="color: ${percent >= 100 ? 'var(--success)' : 'var(--primary)'};">${percent}%</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" style="width: ${percent}%; background: ${percent >= 100 ? 'var(--success)' : 'var(--primary)'}"></div>
+            </div>
+            ${item.Catatan_Scrap ? `<div class="scrap-preview">Scrap: "${item.Catatan_Scrap}"</div>` : ''}
           </div>
-          
-          ${task.Catatan_Scrap ? `
-            <div style="font-size: 12px; background: #fff1f2; padding: 8px; border-radius: 6px; margin-top: 6px; color: #9f1239;">
-              <strong>Catatan Scrap:</strong> ${task.Catatan_Scrap}
-            </div>
-          ` : ''}
 
-          ${isOperator ? `
-            <div style="margin-top: 12px; border-top: 1px dashed var(--border); padding-top: 12px;">
-              <div class="form-group">
-                <label>Update Actual Qty</label>
-                <input type="number" id="actual-${task.ID}" value="${task.Actual_Qty || ''}" placeholder="0">
-              </div>
-              <div class="form-group">
-                <label>Catatan Scrap</label>
-                <textarea id="scrap-${task.ID}" rows="4" placeholder="Ketik catatan scrap jika ada...">${task.Catatan_Scrap || ''}</textarea>
-              </div>
-              <button class="btn" style="background: var(--success);" onclick="updateOperatorTask('${task.ID}')">Simpan Capaian</button>
-            </div>
-          ` : ''}
-
-          ${task.Last_Updated ? `
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 8px; text-align: right;">
-              Update Terakhir: ${task.Last_Updated}
-            </div>
-          ` : ''}
+          <div class="card-action">
+            ${getActionButton(item)}
+            <div style="font-size: 10px; color: var(--muted); margin-top: 6px;">Updated: ${item.Updated_At || '-'}</div>
+          </div>
         `;
         container.appendChild(card);
       });
     }
 
-    // ==========================================
-    // 4. ACTION HANDLERS
-    // ==========================================
-    document.getElementById("form-task").addEventListener("submit", async (e) => {
+    function getActionButton(item) {
+      if (currentUser.role === "admin") {
+        return `<button class="btn" style="padding: 6px 12px; font-size: 12px;" onclick="openModal('edit', '${item.ID}')">Edit Plan</button>`;
+      } else if (currentUser.role === "operator") {
+        return `<button class="btn" style="padding: 6px 12px; font-size: 12px; background: var(--success);" onclick="openModal('edit', '${item.ID}')">Update Actual</button>`;
+      }
+      return `<span style="font-size: 12px; color: var(--muted); font-weight: 600;">View Only</span>`;
+    }
+
+    function updateSummary() {
+      const summaryBar = document.getElementById("summarySection");
+      summaryBar.style.display = "flex";
+
+      let totalPlan = 0;
+      let totalActual = 0;
+
+      globalData.forEach(d => {
+        totalPlan += Number(d.Plan_Qty) || 0;
+        totalActual += Number(d.Actual_Qty) || 0;
+      });
+
+      const overallPercent = totalPlan > 0 ? Math.round((totalActual / totalPlan) * 100) : 0;
+
+      document.getElementById("statTotalPlan").innerText = totalPlan.toLocaleString();
+      document.getElementById("statTotalActual").innerText = totalActual.toLocaleString();
+      document.getElementById("statAchievement").innerText = overallPercent + "%";
+    }
+
+    // --- MODAL & FORM LOGIC ---
+    function openModal(mode, id = null) {
+      const modal = document.getElementById("taskModal");
+      const adminFields = document.getElementById("adminFields");
+      const operatorFields = document.getElementById("operatorFields");
+      const modalTitle = document.getElementById("modalTitle");
+
+      document.getElementById("taskForm").reset();
+      document.getElementById("fieldId").value = "";
+
+      if (mode === "create") {
+        modalTitle.innerText = "Input Penugasan Baru";
+        adminFields.style.display = "block";
+        operatorFields.style.display = "block";
+        // Default Date Today
+        document.getElementById("fieldTanggal").value = new Date().toISOString().split('T')[0];
+      } else if (mode === "edit") {
+        const item = globalData.find(d => d.ID === id);
+        if (!item) return;
+
+        document.getElementById("fieldId").value = item.ID;
+        document.getElementById("fieldTanggal").value = item.Tanggal_Produksi;
+        document.getElementById("fieldOperator").value = item.Nama_Operator;
+        document.getElementById("fieldBagian").value = item.Bagian;
+        document.getElementById("fieldMesin").value = item.Nomor_Mesin;
+        document.getElementById("fieldLensa").value = item.Tipe_Lensa;
+        document.getElementById("fieldPlan").value = item.Plan_Qty;
+        document.getElementById("fieldActual").value = item.Actual_Qty;
+        document.getElementById("fieldScrap").value = item.Catatan_Scrap;
+
+        if (currentUser.role === "admin") {
+          modalTitle.innerText = "Edit Penugasan (Admin)";
+          adminFields.style.display = "block";
+          operatorFields.style.display = "block";
+        } else if (currentUser.role === "operator") {
+          modalTitle.innerText = "Update Hasil Produksi";
+          adminFields.style.display = "none"; // Operator hanya bisa isi actual & scrap
+          operatorFields.style.display = "block";
+        }
+      }
+
+      modal.classList.add("active");
+    }
+
+    function closeModal() {
+      document.getElementById("taskModal").classList.remove("active");
+    }
+
+    document.getElementById("taskForm").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const btn = document.getElementById("btn-save-task");
-      btn.disabled = true;
-      btn.textContent = "Menyimpan...";
+      const btnSave = document.getElementById("btnSave");
+      btnSave.disabled = true;
+      btnSave.innerText = "Menyimpan...";
 
-      const now = new Date();
-      // Hanya mencatat Tanggal (tanpa Jam)
-      const formattedDate = now.toLocaleDateString('id-ID');
+      const id = document.getElementById("fieldId").value;
+      const action = id ? "update" : "create";
 
-      const payload = {
-        action: "create",
-        tanggalJam: formattedDate,
-        operator: document.getElementById("select-operator").value,
-        bagian: document.getElementById("select-bagian").value,
-        nomorMesin: document.getElementById("select-mesin").value,
-        tipeLensa: document.getElementById("select-lensa").value,
-        planQty: document.getElementById("input-plan").value
+      const payloadData = {
+        ID: id,
+        Tanggal_Produksi: document.getElementById("fieldTanggal").value,
+        Nama_Operator: document.getElementById("fieldOperator").value,
+        Bagian: document.getElementById("fieldBagian").value,
+        Nomor_Mesin: document.getElementById("fieldMesin").value,
+        Tipe_Lensa: document.getElementById("fieldLensa").value,
+        Plan_Qty: document.getElementById("fieldPlan").value,
+        Actual_Qty: document.getElementById("fieldActual").value,
+        Catatan_Scrap: document.getElementById("fieldScrap").value
       };
 
       try {
-        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
-        document.getElementById("form-task").reset();
-        await loadData();
+        await fetch(SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: action, data: payloadData })
+        });
+        closeModal();
+        await fetchData();
       } catch (err) {
-        alert("Gagal menyimpan penugasan.");
+        alert("Gagal menyimpan data.");
       } finally {
-        btn.disabled = false;
-        btn.textContent = "Simpan Penugasan";
+        btnSave.disabled = false;
+        btnSave.innerText = "Simpan";
       }
     });
 
-    async function updateOperatorTask(taskId) {
-      const actualVal = document.getElementById(`actual-${taskId}`).value;
-      const scrapVal = document.getElementById(`scrap-${taskId}`).value;
-
-      const now = new Date();
-      // Tetap mencatat Tanggal & Jam saat update terakhir
-      const formattedLastUpdated = `${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}`;
-
-      const payload = {
-        action: "updateActual",
-        id: taskId,
-        actualQty: actualVal,
-        catatanScrap: scrapVal,
-        lastUpdated: formattedLastUpdated
-      };
-
-      try {
-        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(payload) });
-        alert("Capaian berhasil diperbarui!");
-        await loadData();
-      } catch (err) {
-        alert("Gagal memperbarui data.");
-      }
-    }
-
-    // ==========================================
-    // 5. EXPORT TO EXCEL
-    // ==========================================
+    // --- EXPORT TO EXCEL (CSV) ---
     function exportToExcel() {
-      if (tasksData.length === 0) return alert("Tidak ada data untuk di-export.");
+      if (globalData.length === 0) {
+        alert("Tidak ada data untuk di-export.");
+        return;
+      }
 
-      let tableHtml = `<table border="1"><tr>
-        <th>ID</th><th>Tanggal</th><th>Operator</th><th>Bagian</th><th>Nomor Mesin</th>
-        <th>Tipe Lensa</th><th>Plan Qty</th><th>Actual Qty</th><th>Catatan Scrap</th><th>Last Updated</th>
-      </tr>`;
+      const headers = ["ID", "Tanggal_Produksi", "Nama_Operator", "Bagian", "Nomor_Mesin", "Tipe_Lensa", "Plan_Qty", "Actual_Qty", "Catatan_Scrap", "Updated_At"];
+      let csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n";
 
-      tasksData.forEach(row => {
-        tableHtml += `<tr>
-          <td>${row.ID}</td><td>${row.Tanggal_Jam}</td><td>${row.Operator}</td>
-          <td>${row.Bagian}</td><td>${row.Nomor_Mesin}</td><td>${row.Tipe_Lensa}</td>
-          <td>${row.Plan_Qty}</td><td>${row.Actual_Qty}</td><td>${row.Catatan_Scrap}</td>
-          <td>${row.Last_Updated}</td>
-        </tr>`;
+      globalData.forEach(row => {
+        const values = headers.map(header => {
+          let val = row[header] || "";
+          val = val.toString().replace(/"/g, '""'); // Escape double quotes
+          return `"${val}"`;
+        });
+        csvContent += values.join(",") + "\n";
       });
-      tableHtml += `</table>`;
 
-      const blob = new Blob([tableHtml], { type: "application/vnd.ms-excel" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `Laporan_Penugasan_Operator_${new Date().toISOString().slice(0,10)}.xls`;
-      a.click();
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `Penugasan_Operator_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
   </script>
 </body>
