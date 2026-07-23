@@ -3,276 +3,370 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Penugasan Operator</title>
+    <title>Aplikasi Penugasan Operator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root {
-            --primary: #2563eb;
-            --bg-color: #f8fafc;
-            --card-bg: #ffffff;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --border: #e2e8f0;
-        }
-        * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; }
-        
-        .header { text-align: center; margin-bottom: 24px; }
-        .header h2 { margin: 0; color: var(--primary); }
-        .header p { margin: 4px 0 0; color: var(--text-muted); font-size: 14px; }
-
-        /* Card Layout */
-        .card-container { display: flex; flex-direction: column; gap: 16px; max-width: 600px; margin: 0 auto; }
-        .card { background: var(--card-bg); border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid var(--border); }
-        .card-header { display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border); padding-bottom: 12px; margin-bottom: 12px; }
-        .card-header h3 { margin: 0; font-size: 16px; }
-        .badge { background: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; }
-        
-        .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; font-size: 14px; }
-        .data-item span { display: block; color: var(--text-muted); font-size: 12px; }
-        .data-item strong { display: block; margin-top: 2px; }
-
-        /* Form Inputs */
-        .input-group { margin-bottom: 12px; }
-        .input-group label { display: block; font-size: 13px; margin-bottom: 4px; font-weight: 600; }
-        input[type="number"], input[type="text"], textarea {
-            width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;
-        }
-        input:focus, textarea:focus { outline: none; border-color: var(--primary); }
-        
-        button {
-            width: 100%; background: var(--primary); color: white; border: none; padding: 12px; 
-            border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s;
-        }
-        button:active { opacity: 0.8; }
-        
-        #loading { text-align: center; padding: 40px; color: var(--text-muted); }
-        .hidden { display: none !important; }
-
-        /* Observer Specific */
-        .summary-card { border-left: 4px solid var(--primary); }
-        .progress-bar { background: #e2e8f0; border-radius: 4px; height: 8px; margin-top: 8px; overflow: hidden; }
-        .progress-fill { background: var(--primary); height: 100%; }
+        body { background-color: #f3f4f6; font-family: 'Inter', sans-serif; }
+        .loader { border-top-color: #3b82f6; animation: spinner 1.5s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body>
+<body class="text-gray-800">
 
-    <div class="header">
-        <h2 id="page-title">Sistem Penugasan</h2>
-        <p id="page-subtitle">Memuat data...</p>
+    <!-- Header -->
+    <header class="bg-blue-600 text-white p-4 shadow-md sticky top-0 z-50">
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            <h1 class="text-lg font-bold" id="app-title">Penugasan Operator</h1>
+            <span id="user-badge" class="text-xs bg-blue-800 px-2 py-1 rounded hidden"></span>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-md mx-auto p-4" id="app-content">
+        <!-- Loader -->
+        <div id="loading" class="hidden flex justify-center py-10">
+            <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-10 w-10"></div>
+        </div>
+
+        <!-- VIEW: ERROR / UNAUTHORIZED -->
+        <div id="view-error" class="hidden text-center mt-10">
+            <h2 class="text-xl font-bold text-red-500">Akses Ditolak</h2>
+            <p class="text-sm mt-2">URL Token tidak valid atau tidak ditemukan.</p>
+        </div>
+
+        <!-- VIEW: ADMIN INPUT -->
+        <div id="view-admin" class="hidden space-y-4">
+            <h2 class="font-bold text-lg border-b pb-2">Buat Plan Baru</h2>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-3">
+                <input type="date" id="adm-tanggal" class="w-full border rounded p-2 text-sm">
+                <select id="adm-nama" class="w-full border rounded p-2 text-sm"><option value="">Pilih Operator</option></select>
+                <select id="adm-bagian" class="w-full border rounded p-2 text-sm"><option value="">Pilih Bagian</option></select>
+                <input type="text" id="adm-kondisi" placeholder="Kondisi" class="w-full border rounded p-2 text-sm">
+                <select id="adm-mesin" class="w-full border rounded p-2 text-sm"><option value="">Pilih Nomor Mesin</option></select>
+                <select id="adm-lensa" class="w-full border rounded p-2 text-sm"><option value="">Pilih Tipe Lensa</option></select>
+                <input type="number" id="adm-plan" placeholder="Plan Qty" class="w-full border rounded p-2 text-sm">
+                <button onclick="savePlan()" class="bg-blue-600 text-white font-bold py-2 rounded-lg mt-2">Simpan ke Plan</button>
+            </div>
+        </div>
+
+        <!-- VIEW: OPERATOR -->
+        <div id="view-operator" class="hidden">
+            <div class="flex gap-2 mb-4">
+                <button onclick="toggleOpTab('plan')" id="btn-tab-plan" class="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-bold shadow-sm">Plan Hari Ini</button>
+                <button onclick="toggleOpTab('riwayat')" id="btn-tab-riwayat" class="flex-1 bg-white text-gray-600 py-2 rounded-lg text-sm font-bold shadow-sm">Riwayat</button>
+            </div>
+            
+            <div id="op-plan-list" class="space-y-4"></div>
+            <div id="op-riwayat-list" class="space-y-4 hidden"></div>
+        </div>
+
+        <!-- VIEW: OBSERVER -->
+        <div id="view-observer" class="hidden space-y-4">
+            <div class="flex gap-2 mb-4">
+                <select id="filter-bagian" class="w-full border rounded-lg p-2 text-sm shadow-sm" onchange="renderObserver()">
+                    <option value="ALL">Semua Bagian</option>
+                </select>
+            </div>
+            <div id="obs-summary-list" class="grid gap-3"></div>
+        </div>
+    </main>
+
+    <!-- MODAL INPUT ACHIEVEMENT OPERATOR -->
+    <div id="modal-input" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl w-full max-w-sm p-5 shadow-xl relative max-h-[90vh] overflow-y-auto">
+            <h3 class="font-bold text-lg mb-1">Input Pencapaian</h3>
+            <p id="modal-subtitle" class="text-xs text-gray-500 mb-4"></p>
+            
+            <div class="space-y-3">
+                <div>
+                    <label class="text-xs font-semibold text-gray-600">Siklus</label>
+                    <input type="text" id="inp-siklus" class="w-full border border-gray-300 rounded p-2 text-sm focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-gray-600">Actual Qty</label>
+                    <input type="number" id="inp-actual" class="w-full border border-gray-300 rounded p-2 text-sm focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-gray-600">Catatan Scrap</label>
+                    <textarea id="inp-scrap" rows="4" class="w-full border border-gray-300 rounded p-2 text-sm focus:ring-blue-500"></textarea>
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-gray-600">Keterangan</label>
+                    <textarea id="inp-keterangan" rows="4" class="w-full border border-gray-300 rounded p-2 text-sm focus:ring-blue-500"></textarea>
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button onclick="closeModal()" class="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg font-semibold text-sm">Batal</button>
+                    <button onclick="submitAchievement()" class="flex-1 bg-blue-600 text-white py-2 rounded-lg font-semibold text-sm">Kirim</button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div id="loading">Mengambil data dari server...</div>
-    
-    <div id="app" class="card-container hidden"></div>
-
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbx6TCbf3yEHVoBzGK9HI5JanxCJSxy91R3pEwhbgk0xf8q-nijlTWDPr6qlFg1WLWLl/exec';
-        
-        // Setup Const yang disiapkan untuk struktur referensi filter/input di pengembangan selanjutnya
-        const CONST_NAMA_OPERATOR = []; 
-        const CONST_BAGIAN = [];
-        const CONST_NOMOR_MESIN = [];
-        const CONST_TIPE_LENSA = [];
+        // ================= CONFIGURATION & CONSTANTS =================
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzd6yrDTwDP3RQpgop5mrJt0nKWqtuaRQmkjxqI4ksZPqMUpQFWPm-MBlUJeuXz97Qxwg/exec'; 
 
-        // Ambil URL Parameter (Token)
-        const urlParams = new URLSearchParams(window.location.search);
-        const token = urlParams.get('token'); 
-        
-        const appDiv = document.getElementById('app');
-        const loadingDiv = document.getElementById('loading');
-        
-        // Inisialisasi Aplikasi
-        async function init() {
-            if (!token) {
-                loadingDiv.innerHTML = "Akses ditolak. Token tidak ditemukan di URL.";
+        // Konstanta Input Standar
+        const CONST_NAMA = ["Operator A", "Operator B", "Operator C"];
+        const CONST_BAGIAN = ["Surfacing", "Coating", "Edging", "QC"];
+        const CONST_MESIN = ["M-01", "M-02", "M-03", "M-04"];
+        const CONST_LENSA = ["Single Vision", "Bifocal", "Progressive", "Lenticular"];
+
+        // Database URL Tokens (Disimpan di HTML/JS)
+        const URL_TOKENS = {
+            "op_a": { role: "operator", nama: "Operator A" },
+            "op_b": { role: "operator", nama: "Operator B" },
+            "obs_1": { role: "observer", nama: "Observer Pusat" },
+            "admin_x": { role: "admin", nama: "Administrator" }
+        };
+
+        // State Apps
+        let currentUser = null;
+        let activePlanData = null; 
+        let rawAchievements = [];
+
+        // ================= INITIALIZATION =================
+        window.onload = () => {
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('token');
+            
+            if (token && URL_TOKENS[token]) {
+                currentUser = URL_TOKENS[token];
+                document.getElementById('user-badge').innerText = currentUser.nama;
+                document.getElementById('user-badge').classList.remove('hidden');
+                
+                if (currentUser.role === 'operator') initOperator();
+                else if (currentUser.role === 'observer') initObserver();
+                else if (currentUser.role === 'admin') initAdmin();
+            } else {
+                document.getElementById('view-error').classList.remove('hidden');
+            }
+        };
+
+        const showLoading = (show) => document.getElementById('loading').style.display = show ? 'flex' : 'none';
+
+        // ================= ADMIN LOGIC =================
+        function initAdmin() {
+            document.getElementById('view-admin').classList.remove('hidden');
+            document.getElementById('app-title').innerText = "Admin Input Plan";
+            
+            // Populate Dropdowns dari Const
+            const populate = (id, arr) => {
+                const el = document.getElementById(id);
+                arr.forEach(val => el.innerHTML += `<option value="${val}">${val}</option>`);
+            };
+            populate('adm-nama', CONST_NAMA);
+            populate('adm-bagian', CONST_BAGIAN);
+            populate('adm-mesin', CONST_MESIN);
+            populate('adm-lensa', CONST_LENSA);
+        }
+
+        async function savePlan() {
+            showLoading(true);
+            const payload = {
+                action: 'savePlan',
+                tanggal: document.getElementById('adm-tanggal').value,
+                nama: document.getElementById('adm-nama').value,
+                bagian: document.getElementById('adm-bagian').value,
+                kondisi: document.getElementById('adm-kondisi').value,
+                mesin: document.getElementById('adm-mesin').value,
+                lensa: document.getElementById('adm-lensa').value,
+                plan: document.getElementById('adm-plan').value
+            };
+
+            await fetch(SCRIPT_URL, {
+                method: 'POST', mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            alert('Plan berhasil ditambahkan ke Google Sheets!');
+            showLoading(false);
+        }
+
+        // ================= OPERATOR LOGIC =================
+        async function initOperator() {
+            document.getElementById('view-operator').classList.remove('hidden');
+            showLoading(true);
+            
+            // Get Plan
+            const resPlan = await fetch(`${SCRIPT_URL}?action=getPlan&nama=${currentUser.nama}`);
+            const plans = await resPlan.json();
+            
+            // Get Riwayat
+            const resAch = await fetch(`${SCRIPT_URL}?action=getAchievement`);
+            const achs = await resAch.json();
+            const myAchs = achs.filter(a => a.nama === currentUser.nama);
+
+            showLoading(false);
+            renderOperatorPlans(plans);
+            renderOperatorRiwayat(myAchs);
+        }
+
+        function renderOperatorPlans(plans) {
+            const container = document.getElementById('op-plan-list');
+            container.innerHTML = '';
+            if(plans.length === 0) container.innerHTML = '<p class="text-center text-sm text-gray-500">Tidak ada plan kerja saat ini.</p>';
+            
+            plans.forEach(p => {
+                const card = document.createElement('div');
+                card.className = "bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500 relative";
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">${p.mesin}</span>
+                        <span class="text-xs text-gray-500">${new Date(p.tanggal).toLocaleDateString('id-ID')}</span>
+                    </div>
+                    <h3 class="font-bold text-gray-800">${p.lensa}</h3>
+                    <p class="text-sm text-gray-600 mb-1">Bagian: ${p.bagian} | Kondisi: ${p.kondisi}</p>
+                    <div class="bg-gray-50 p-2 rounded flex justify-between items-center mb-3">
+                        <span class="text-xs text-gray-500">Target Plan Qty</span>
+                        <span class="font-bold text-lg">${p.plan}</span>
+                    </div>
+                    <button onclick='openModal(${JSON.stringify(p)})' class="w-full bg-blue-50 text-blue-600 border border-blue-200 font-semibold py-2 rounded-lg text-sm hover:bg-blue-600 hover:text-white transition">Input Aktual</button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderOperatorRiwayat(achs) {
+            const container = document.getElementById('op-riwayat-list');
+            container.innerHTML = '';
+            if(achs.length === 0) container.innerHTML = '<p class="text-center text-sm text-gray-500">Belum ada riwayat input.</p>';
+
+            achs.reverse().forEach(a => {
+                const card = document.createElement('div');
+                card.className = "bg-white p-4 rounded-xl shadow-sm border border-gray-100 opacity-80";
+                card.innerHTML = `
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded">Disubmit</span>
+                        <span class="text-xs text-gray-400">${new Date(a.timestamp).toLocaleString('id-ID')}</span>
+                    </div>
+                    <p class="text-sm font-semibold">${a.lensa} (${a.mesin})</p>
+                    <div class="flex justify-between text-sm mt-2 pt-2 border-t">
+                        <span class="text-gray-500">Plan: ${a.plan}</span>
+                        <span class="font-bold text-green-600">Actual: ${a.actual}</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function toggleOpTab(tab) {
+            document.getElementById('op-plan-list').classList.toggle('hidden', tab !== 'plan');
+            document.getElementById('op-riwayat-list').classList.toggle('hidden', tab !== 'riwayat');
+            document.getElementById('btn-tab-plan').className = tab === 'plan' ? "flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-bold shadow-sm" : "flex-1 bg-white text-gray-600 py-2 rounded-lg text-sm font-bold shadow-sm";
+            document.getElementById('btn-tab-riwayat').className = tab === 'riwayat' ? "flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-bold shadow-sm" : "flex-1 bg-white text-gray-600 py-2 rounded-lg text-sm font-bold shadow-sm";
+        }
+
+        function openModal(planData) {
+            activePlanData = planData;
+            document.getElementById('modal-subtitle').innerText = `${planData.lensa} - Mesin: ${planData.mesin}`;
+            document.getElementById('inp-siklus').value = '';
+            document.getElementById('inp-actual').value = '';
+            document.getElementById('inp-scrap').value = '';
+            document.getElementById('inp-keterangan').value = '';
+            document.getElementById('modal-input').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-input').classList.add('hidden');
+            activePlanData = null;
+        }
+
+        async function submitAchievement() {
+            if(!activePlanData) return;
+            showLoading(true);
+            closeModal();
+
+            const payload = {
+                action: 'saveAchievement',
+                nama: currentUser.nama,
+                bagian: activePlanData.bagian,
+                kondisi: activePlanData.kondisi,
+                mesin: activePlanData.mesin,
+                lensa: activePlanData.lensa,
+                plan: activePlanData.plan,
+                siklus: document.getElementById('inp-siklus').value,
+                actual: document.getElementById('inp-actual').value,
+                scrap: document.getElementById('inp-scrap').value,
+                keterangan: document.getElementById('inp-keterangan').value
+            };
+
+            await fetch(SCRIPT_URL, {
+                method: 'POST', mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            alert('Data berhasil disimpan!');
+            initOperator(); // Refresh data
+        }
+
+        // ================= OBSERVER LOGIC =================
+        async function initObserver() {
+            document.getElementById('view-observer').classList.remove('hidden');
+            document.getElementById('app-title').innerText = "Dashboard Observer";
+            
+            // Setup Filter Dropdown dari Const
+            const filterEl = document.getElementById('filter-bagian');
+            CONST_BAGIAN.forEach(b => filterEl.innerHTML += `<option value="${b}">${b}</option>`);
+
+            showLoading(true);
+            const res = await fetch(`${SCRIPT_URL}?action=getAchievement`);
+            rawAchievements = await res.json();
+            showLoading(false);
+            
+            renderObserver();
+        }
+
+        function renderObserver() {
+            const filterVal = document.getElementById('filter-bagian').value;
+            const container = document.getElementById('obs-summary-list');
+            container.innerHTML = '';
+
+            // Filter & Grouping
+            let filtered = filterVal === "ALL" ? rawAchievements : rawAchievements.filter(a => a.bagian === filterVal);
+            
+            let summary = {};
+            filtered.forEach(a => {
+                const key = `${a.bagian} | ${a.lensa}`;
+                if(!summary[key]) summary[key] = { bagian: a.bagian, lensa: a.lensa, plan: 0, actual: 0 };
+                // Pastikan dijumlahkan sebagai angka
+                summary[key].plan += Number(a.plan) || 0;
+                summary[key].actual += Number(a.actual) || 0;
+            });
+
+            if(Object.keys(summary).length === 0) {
+                container.innerHTML = '<p class="text-center text-sm text-gray-500 mt-5">Tidak ada data untuk bagian ini.</p>';
                 return;
             }
 
-            try {
-                const response = await fetch(API_URL);
-                const data = await response.json();
+            // Render Card Summary
+            for (let k in summary) {
+                const s = summary[k];
+                const persen = s.plan > 0 ? ((s.actual / s.plan) * 100).toFixed(1) : 0;
                 
-                loadingDiv.classList.add('hidden');
-                appDiv.classList.remove('hidden');
-
-                if (token.toLowerCase() === 'observer') {
-                    renderObserver(data);
-                } else {
-                    renderOperator(data, token);
-                }
-            } catch (error) {
-                loadingDiv.innerHTML = "Gagal mengambil data. Periksa koneksi internet.";
+                const card = document.createElement('div');
+                card.className = "bg-white p-4 rounded-xl shadow-sm border border-gray-100";
+                card.innerHTML = `
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-xs font-bold text-gray-500 uppercase">${s.bagian}</span>
+                        <span class="text-xs font-bold ${persen >= 100 ? 'text-green-600' : 'text-orange-500'}">${persen}% Tercapai</span>
+                    </div>
+                    <h3 class="font-bold text-gray-800 text-lg mb-2">${s.lensa}</h3>
+                    <div class="flex gap-2 text-sm">
+                        <div class="bg-gray-50 p-2 rounded flex-1 text-center border">
+                            <p class="text-xs text-gray-500 mb-1">Total Plan</p>
+                            <p class="font-bold">${s.plan}</p>
+                        </div>
+                        <div class="bg-blue-50 p-2 rounded flex-1 text-center border border-blue-100">
+                            <p class="text-xs text-blue-500 mb-1">Total Actual</p>
+                            <p class="font-bold text-blue-700">${s.actual}</p>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
             }
         }
-
-// --- RENDER OPERATOR VIEW ---
-function renderOperator(data, operatorName) {
-    document.getElementById('page-title').innerText = "Work Order";
-    document.getElementById('page-subtitle').innerText = `Operator: ${operatorName}`;
-    
-    const myTasks = data.filter(item => item['Nama Operator'] === operatorName);
-    
-    if (myTasks.length === 0) {
-        appDiv.innerHTML = `<div class="card"><p style="text-align:center">Tidak ada tugas untuk saat ini.</p></div>`;
-        return;
-    }
-
-    let html = '';
-    myTasks.forEach(task => {
-        // Kalkulasi persentase saat halaman dimuat
-        const planQty = Number(task['Plan Qty']) || 0;
-        const actualQty = Number(task['Actual Qty']) || 0;
-        const percentage = planQty > 0 ? ((actualQty / planQty) * 100).toFixed(1) : 0;
-
-        html += `
-        <div class="card">
-            <div class="card-header">
-                <h3>${task['Bagian']} - ${task['Tipe Lensa']}</h3>
-                <span class="badge">Mesin: ${task['Nomor Mesin']}</span>
-            </div>
-            <div class="data-grid">
-                <div class="data-item"><span>Tanggal</span><strong>${task['Tanggal Produksi'] ? new Date(task['Tanggal Produksi']).toLocaleDateString('id-ID') : '-'}</strong></div>
-                <div class="data-item"><span>Siklus</span><strong>${task['Siklus'] || '-'}</strong></div>
-                <div class="data-item"><span>Plan Qty</span><strong style="color:var(--primary); font-size:16px">${planQty}</strong></div>
-                <div class="data-item"><span>Status Update</span><strong id="time-${task.rowNumber}" style="font-size:11px; color:green">${task['Waktu Update'] || 'Belum diisi'}</strong></div>
-            </div>
-            
-            <!-- PROGRESS BAR KETERCAPAIAN -->
-            <div style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px dashed var(--border);">
-                <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 6px;">
-                    <span>Persentase Ketercapaian</span>
-                    <span id="text-percent-${task.rowNumber}" style="color: var(--primary);">${percentage}%</span>
-                </div>
-                <div class="progress-bar">
-                    <div id="bar-percent-${task.rowNumber}" class="progress-fill" style="width: ${Math.min(percentage, 100)}%; transition: width 0.3s ease;"></div>
-                </div>
-            </div>
-            
-            <div class="input-group">
-                <label>Actual Qty OK</label>
-                <!-- Tambahan oninput untuk memicu perubahan visual real-time -->
-                <input type="number" id="actual-${task.rowNumber}" value="${actualQty || ''}" placeholder="Masukan hasil aktual" oninput="updateProgress(${task.rowNumber}, ${planQty}, this.value)">
-            </div>
-            
-            <div class="input-group">
-                <label>Catatan Scrap</label>
-                <textarea id="scrap-${task.rowNumber}" rows="4" placeholder="Detail scrap...">${task['Catatan Scrap'] || ''}</textarea>
-            </div>
-
-            <div class="input-group">
-                <label>Catatan Repair</label>
-                <input type="text" id="repair-${task.rowNumber}" value="${task['Catatan Repair'] || ''}" placeholder="Detail repair...">
-            </div>
-
-            <button onclick="saveData(${task.rowNumber}, this)">Simpan Progress</button>
-        </div>`;
-    });
-    appDiv.innerHTML = html;
-}
-
-// --- FUNGSI UPDATE PROGRESS BAR REAL-TIME ---
-function updateProgress(rowNum, planQty, actualValue) {
-    const actual = Number(actualValue) || 0;
-    const percentage = planQty > 0 ? ((actual / planQty) * 100).toFixed(1) : 0;
-    
-    // Update teks persentase
-    document.getElementById(`text-percent-${rowNum}`).innerText = `${percentage}%`;
-    
-    // Update lebar progress bar (dibatasi maksimal visual 100% agar tidak keluar layout)
-    document.getElementById(`bar-percent-${rowNum}`).style.width = `${Math.min(percentage, 100)}%`;
-}
-
-        // --- RENDER OBSERVER VIEW ---
-        function renderObserver(data) {
-            document.getElementById('page-title').innerText = "Dashboard Observer";
-            document.getElementById('page-subtitle').innerText = "Ringkasan Pencapaian Keseluruhan";
-
-            let summary = {};
-
-            // Mengelompokkan data (Grouping)
-            data.forEach(item => {
-                if(!item['Bagian']) return; // Skip baris kosong
-                
-                let key = `${item['Bagian']} - ${item['Tipe Lensa']}`;
-                if (!summary[key]) {
-                    summary[key] = { bagian: item['Bagian'], lensa: item['Tipe Lensa'], plan: 0, actual: 0 };
-                }
-                summary[key].plan += Number(item['Plan Qty']) || 0;
-                summary[key].actual += Number(item['Actual Qty']) || 0;
-            });
-
-            let html = '';
-            for (const key in summary) {
-                const s = summary[key];
-                const percentage = s.plan > 0 ? ((s.actual / s.plan) * 100).toFixed(1) : 0;
-                
-                html += `
-                <div class="card summary-card">
-                    <div class="card-header" style="border-bottom:none; padding-bottom:0; margin-bottom:8px">
-                        <h3>${s.bagian}</h3>
-                        <span class="badge">${s.lensa}</span>
-                    </div>
-                    <div class="data-grid" style="margin-bottom:8px">
-                        <div class="data-item"><span>Total Plan</span><strong>${s.plan}</strong></div>
-                        <div class="data-item"><span>Total Actual</span><strong>${s.actual}</strong></div>
-                    </div>
-                    <div style="font-size:13px; font-weight:bold; margin-top:12px;">Ketercapaian: ${percentage}%</div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${Math.min(percentage, 100)}%"></div>
-                    </div>
-                </div>`;
-            }
-
-            if(Object.keys(summary).length === 0) {
-                html = `<div class="card"><p style="text-align:center">Belum ada data tersedia.</p></div>`;
-            }
-
-            appDiv.innerHTML = html;
-        }
-
-        // --- FUNGSI UPDATE DATA KE SHEET ---
-        async function saveData(rowNum, btnElement) {
-            const actual = document.getElementById(`actual-${rowNum}`).value;
-            const scrap = document.getElementById(`scrap-${rowNum}`).value;
-            const repair = document.getElementById(`repair-${rowNum}`).value;
-
-            btnElement.innerText = "Menyimpan...";
-            btnElement.style.opacity = "0.7";
-
-            const payload = {
-                rowNumber: rowNum,
-                'Actual Qty': actual,
-                'Catatan Scrap': scrap,
-                'Catatan Repair': repair
-            };
-
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(payload)
-                });
-                
-                const result = await response.json();
-                
-                btnElement.innerText = "Tersimpan!";
-                btnElement.style.background = "#16a34a"; // warna hijau
-                document.getElementById(`time-${rowNum}`).innerText = result.time;
-
-                setTimeout(() => {
-                    btnElement.innerText = "Simpan Progress";
-                    btnElement.style.background = "var(--primary)";
-                    btnElement.style.opacity = "1";
-                }, 2000);
-
-            } catch (error) {
-                alert("Gagal menyimpan data.");
-                btnElement.innerText = "Coba Lagi";
-                btnElement.style.opacity = "1";
-            }
-        }
-
-        // Jalankan aplikasi saat halaman dimuat
-        init();
     </script>
 </body>
 </html>
