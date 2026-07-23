@@ -107,7 +107,7 @@
 
         // --- RENDER OPERATOR VIEW ---
         function renderOperator(data, operatorName) {
-            document.getElementById('page-title').innerText = "Tugas Anda";
+            document.getElementById('page-title').innerText = "Work Order";
             document.getElementById('page-subtitle').innerText = `Operator: ${operatorName}`;
             
             const myTasks = data.filter(item => item['Nama Operator'] === operatorName);
@@ -133,7 +133,7 @@
                     </div>
                     
                     <div class="input-group">
-                        <label>Actual Qty</label>
+                        <label>Actual Qty OK</label>
                         <input type="number" id="actual-${task.rowNumber}" value="${task['Actual Qty'] || ''}" placeholder="Masukan hasil aktual">
                     </div>
                     
