@@ -105,54 +105,82 @@
             }
         }
 
-        // --- RENDER OPERATOR VIEW ---
-        function renderOperator(data, operatorName) {
-            document.getElementById('page-title').innerText = "Work Order";
-            document.getElementById('page-subtitle').innerText = `Operator: ${operatorName}`;
+// --- RENDER OPERATOR VIEW ---
+function renderOperator(data, operatorName) {
+    document.getElementById('page-title').innerText = "Tugas Anda";
+    document.getElementById('page-subtitle').innerText = `Operator: ${operatorName}`;
+    
+    const myTasks = data.filter(item => item['Nama Operator'] === operatorName);
+    
+    if (myTasks.length === 0) {
+        appDiv.innerHTML = `<div class="card"><p style="text-align:center">Tidak ada tugas untuk saat ini.</p></div>`;
+        return;
+    }
+
+    let html = '';
+    myTasks.forEach(task => {
+        // Kalkulasi persentase saat halaman dimuat
+        const planQty = Number(task['Plan Qty']) || 0;
+        const actualQty = Number(task['Actual Qty']) || 0;
+        const percentage = planQty > 0 ? ((actualQty / planQty) * 100).toFixed(1) : 0;
+
+        html += `
+        <div class="card">
+            <div class="card-header">
+                <h3>${task['Bagian']} - ${task['Tipe Lensa']}</h3>
+                <span class="badge">Mesin: ${task['Nomor Mesin']}</span>
+            </div>
+            <div class="data-grid">
+                <div class="data-item"><span>Tanggal</span><strong>${task['Tanggal Produksi'] ? new Date(task['Tanggal Produksi']).toLocaleDateString('id-ID') : '-'}</strong></div>
+                <div class="data-item"><span>Siklus</span><strong>${task['Siklus'] || '-'}</strong></div>
+                <div class="data-item"><span>Plan Qty</span><strong style="color:var(--primary); font-size:16px">${planQty}</strong></div>
+                <div class="data-item"><span>Status Update</span><strong id="time-${task.rowNumber}" style="font-size:11px; color:green">${task['Waktu Update'] || 'Belum diisi'}</strong></div>
+            </div>
             
-            const myTasks = data.filter(item => item['Nama Operator'] === operatorName);
+            <!-- PROGRESS BAR KETERCAPAIAN -->
+            <div style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px dashed var(--border);">
+                <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-bottom: 6px;">
+                    <span>Persentase Ketercapaian</span>
+                    <span id="text-percent-${task.rowNumber}" style="color: var(--primary);">${percentage}%</span>
+                </div>
+                <div class="progress-bar">
+                    <div id="bar-percent-${task.rowNumber}" class="progress-fill" style="width: ${Math.min(percentage, 100)}%; transition: width 0.3s ease;"></div>
+                </div>
+            </div>
             
-            if (myTasks.length === 0) {
-                appDiv.innerHTML = `<div class="card"><p style="text-align:center">Tidak ada tugas untuk saat ini.</p></div>`;
-                return;
-            }
+            <div class="input-group">
+                <label>Actual Qty</label>
+                <!-- Tambahan oninput untuk memicu perubahan visual real-time -->
+                <input type="number" id="actual-${task.rowNumber}" value="${actualQty || ''}" placeholder="Masukan hasil aktual" oninput="updateProgress(${task.rowNumber}, ${planQty}, this.value)">
+            </div>
+            
+            <div class="input-group">
+                <label>Catatan Scrap</label>
+                <textarea id="scrap-${task.rowNumber}" rows="4" placeholder="Detail scrap...">${task['Catatan Scrap'] || ''}</textarea>
+            </div>
 
-            let html = '';
-            myTasks.forEach(task => {
-                html += `
-                <div class="card">
-                    <div class="card-header">
-                        <h3>${task['Bagian']} - ${task['Tipe Lensa']}</h3>
-                        <span class="badge">Mesin: ${task['Nomor Mesin']}</span>
-                    </div>
-                    <div class="data-grid">
-                        <div class="data-item"><span>Tanggal</span><strong>${task['Tanggal Produksi'] ? new Date(task['Tanggal Produksi']).toLocaleDateString('id-ID') : '-'}</strong></div>
-                        <div class="data-item"><span>Siklus</span><strong>${task['Siklus'] || '-'}</strong></div>
-                        <div class="data-item"><span>Plan Qty</span><strong style="color:var(--primary); font-size:16px">${task['Plan Qty']}</strong></div>
-                        <div class="data-item"><span>Status Update</span><strong id="time-${task.rowNumber}" style="font-size:11px; color:green">${task['Waktu Update'] || 'Belum diisi'}</strong></div>
-                    </div>
-                    
-                    <div class="input-group">
-                        <label>Actual Qty OK</label>
-                        <input type="number" id="actual-${task.rowNumber}" value="${task['Actual Qty'] || ''}" placeholder="Masukan hasil aktual">
-                    </div>
-                    
-                    <div class="input-group">
-                        <!-- Tipe input textarea 4 baris -->
-                        <label>Catatan Scrap</label>
-                        <textarea id="scrap-${task.rowNumber}" rows="4" placeholder="Detail scrap...">${task['Catatan Scrap'] || ''}</textarea>
-                    </div>
+            <div class="input-group">
+                <label>Catatan Repair</label>
+                <input type="text" id="repair-${task.rowNumber}" value="${task['Catatan Repair'] || ''}" placeholder="Detail repair...">
+            </div>
 
-                    <div class="input-group">
-                        <label>Catatan Repair</label>
-                        <input type="text" id="repair-${task.rowNumber}" value="${task['Catatan Repair'] || ''}" placeholder="Detail repair...">
-                    </div>
+            <button onclick="saveData(${task.rowNumber}, this)">Simpan Progress</button>
+        </div>`;
+    });
+    appDiv.innerHTML = html;
+}
 
-                    <button onclick="saveData(${task.rowNumber}, this)">Simpan Progress</button>
-                </div>`;
-            });
-            appDiv.innerHTML = html;
-        }
+// --- FUNGSI UPDATE PROGRESS BAR REAL-TIME ---
+function updateProgress(rowNum, planQty, actualValue) {
+    const actual = Number(actualValue) || 0;
+    const percentage = planQty > 0 ? ((actual / planQty) * 100).toFixed(1) : 0;
+    
+    // Update teks persentase
+    document.getElementById(`text-percent-${rowNum}`).innerText = `${percentage}%`;
+    
+    // Update lebar progress bar (dibatasi maksimal visual 100% agar tidak keluar layout)
+    document.getElementById(`bar-percent-${rowNum}`).style.width = `${Math.min(percentage, 100)}%`;
+}
 
         // --- RENDER OBSERVER VIEW ---
         function renderObserver(data) {
