@@ -149,7 +149,7 @@ function renderOperator(data, operatorName) {
             </div>
             
             <div class="input-group">
-                <label>Actual Qty</label>
+                <label>Actual Qty OK</label>
                 <!-- Tambahan oninput untuk memicu perubahan visual real-time -->
                 <input type="number" id="actual-${task.rowNumber}" value="${actualQty || ''}" placeholder="Masukan hasil aktual" oninput="updateProgress(${task.rowNumber}, ${planQty}, this.value)">
             </div>
