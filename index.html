@@ -3,338 +3,248 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikasi Penugasan Operator</title>
+    <title>Penugasan Operator</title>
     <style>
         :root {
-            --bg: #f4f7f6;
-            --primary: #2c3e50;
-            --accent: #3498db;
-            --text: #333;
-            --card-bg: #fff;
-            --border: #e0e0e0;
+            --primary: #2563eb;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
         }
-        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; }
-        h1, h2 { color: var(--primary); }
-        .container { max-width: 800px; margin: 0 auto; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; }
         
-        /* Form & Inputs */
-        .form-container { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; display: none; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; }
-        input, select, textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 4px; }
-        button { background-color: var(--accent); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        button:hover { opacity: 0.9; }
-        .btn-export { background-color: #27ae60; }
+        .header { text-align: center; margin-bottom: 24px; }
+        .header h2 { margin: 0; color: var(--primary); }
+        .header p { margin: 4px 0 0; color: var(--text-muted); font-size: 14px; }
+
+        /* Card Layout */
+        .card-container { display: flex; flex-direction: column; gap: 16px; max-width: 600px; margin: 0 auto; }
+        .card { background: var(--card-bg); border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid var(--border); }
+        .card-header { display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border); padding-bottom: 12px; margin-bottom: 12px; }
+        .card-header h3 { margin: 0; font-size: 16px; }
+        .badge { background: #e0f2fe; color: #0369a1; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; }
         
-        /* Cards */
-        .card-list { display: flex; flex-direction: column; gap: 15px; }
-        .card { background: var(--card-bg); border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid var(--accent); }
-        .card-header { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9em; color: #7f8c8d; }
-        .card-title { font-size: 1.1em; font-weight: bold; margin-bottom: 10px; }
-        .card-detail { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9em; margin-bottom: 15px; }
-        .achievement { font-weight: bold; color: #27ae60; }
+        .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; font-size: 14px; }
+        .data-item span { display: block; color: var(--text-muted); font-size: 12px; }
+        .data-item strong { display: block; margin-top: 2px; }
+
+        /* Form Inputs */
+        .input-group { margin-bottom: 12px; }
+        .input-group label { display: block; font-size: 13px; margin-bottom: 4px; font-weight: 600; }
+        input[type="number"], input[type="text"], textarea {
+            width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px;
+        }
+        input:focus, textarea:focus { outline: none; border-color: var(--primary); }
         
-        /* Utilities */
+        button {
+            width: 100%; background: var(--primary); color: white; border: none; padding: 12px; 
+            border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s;
+        }
+        button:active { opacity: 0.8; }
+        
+        #loading { text-align: center; padding: 40px; color: var(--text-muted); }
         .hidden { display: none !important; }
-        #loading { text-align: center; margin-top: 50px; font-weight: bold; }
+
+        /* Observer Specific */
+        .summary-card { border-left: 4px solid var(--primary); }
+        .progress-bar { background: #e2e8f0; border-radius: 4px; height: 8px; margin-top: 8px; overflow: hidden; }
+        .progress-fill { background: var(--primary); height: 100%; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div id="loading">Memuat Data...</div>
-    
-    <div id="app" class="hidden">
-        <div class="header">
-            <div>
-                <h1 id="titleRole">Dashboard</h1>
-                <p id="subtitleName">Selamat datang</p>
-            </div>
-            <button id="btnExport" class="btn-export hidden" onclick="exportToExcel()">Export Excel</button>
-        </div>
-
-        <!-- Form Admin -->
-        <div id="adminForm" class="form-container">
-            <h2>Input Plan Produksi</h2>
-            <input type="hidden" id="inputId">
-            
-            <div class="form-group">
-                <label>Tanggal Produksi</label>
-                <input type="date" id="inputTanggal">
-            </div>
-            <div class="form-group">
-                <label>Nama Operator</label>
-                <select id="inputNama"></select>
-            </div>
-            <div class="form-group">
-                <label>Bagian</label>
-                <select id="inputBagian"></select>
-            </div>
-            <div class="form-group">
-                <label>Nomor Mesin</label>
-                <select id="inputMesin"></select>
-            </div>
-            <div class="form-group">
-                <label>Tipe Lensa</label>
-                <select id="inputLensa"></select>
-            </div>
-            <div class="form-group">
-                <label>Plan Qty</label>
-                <input type="number" id="inputPlan">
-            </div>
-            <div class="form-group">
-                <label>Actual Qty</label>
-                <input type="number" id="inputActual">
-            </div>
-            <div class="form-group">
-                <label>Catatan Scrap</label>
-                <textarea id="inputCatatan" rows="4"></textarea>
-            </div>
-            <button onclick="saveData()">Simpan Data</button>
-            <button onclick="resetForm()" style="background:#e74c3c; margin-left:10px;">Batal</button>
-        </div>
-
-        <div class="card-list" id="cardContainer"></div>
+    <div class="header">
+        <h2 id="page-title">Sistem Penugasan</h2>
+        <p id="page-subtitle">Memuat data...</p>
     </div>
-</div>
 
-<script>
-    // --- 1. KONFIGURASI VARIABEL OPTION (CONST) ---
-    const OPT_NAMA = ["Andi", "Budi", "Siti", "Agus"];
-    const OPT_BAGIAN = ["Generating", "Polishing", "Coating", "Edging"];
-    const OPT_MESIN = ["M-01", "M-02", "M-03", "M-04"];
-    const OPT_LENSA = ["Single Vision", "Bifocal", "Progressive", "Lenticular"];
-
-    const API_URL = "https://script.google.com/macros/s/AKfycbxNbyexLtLsA4PUX5WttPLeE_wDWV97eb03OUQYCbeSDfOzlAwkto_Hrl1tmrG-LXw/exec"; 
+    <div id="loading">Mengambil data dari server...</div>
     
-    // --- 2. STATE APLIKASI ---
-    let appData = [];
-    let currentUser = { role: null, nama: null };
+    <div id="app" class="card-container hidden"></div>
 
-    // --- 3. INISIALISASI & RENDER ---
-    window.onload = () => {
-        populateSelect("inputNama", OPT_NAMA);
-        populateSelect("inputBagian", OPT_BAGIAN);
-        populateSelect("inputMesin", OPT_MESIN);
-        populateSelect("inputLensa", OPT_LENSA);
-        fetchData();
-    };
-
-    function populateSelect(elementId, arrayData) {
-        const select = document.getElementById(elementId);
-        select.innerHTML = '<option value="">-- Pilih --</option>';
-        arrayData.forEach(item => {
-            select.innerHTML += `<option value="${item}">${item}</option>`;
-        });
-    }
-
-    async function fetchData() {
-        try {
-            const urlParams = new URLSearchParams(window.location.search);
-            const userToken = urlParams.get('token');
-
-            if (!userToken) {
-                document.getElementById("loading").innerText = "Token tidak valid atau tidak ditemukan di URL.";
-                return;
-            }
-
-            const response = await fetch(API_URL);
-            const result = await response.json();
-            
-            appData = result.data;
-            const paramData = result.param;
-
-            const userMatch = paramData.find(p => p.token === userToken);
-            if (!userMatch) {
-                document.getElementById("loading").innerText = "Akses ditolak. Token tidak terdaftar.";
-                return;
-            }
-
-            currentUser.role = userMatch.role;
-            currentUser.nama = userMatch.nama_operator;
-
-            setupUI();
-        } catch (error) {
-            document.getElementById("loading").innerText = "Gagal memuat data. Periksa koneksi internet.";
-        }
-    }
-
-    function setupUI() {
-        document.getElementById("loading").classList.add("hidden");
-        document.getElementById("app").classList.remove("hidden");
+    <script>
+        const API_URL = 'https://script.google.com/macros/s/AKfycbx6TCbf3yEHVoBzGK9HI5JanxCJSxy91R3pEwhbgk0xf8q-nijlTWDPr6qlFg1WLWLl/exec';
         
-        document.getElementById("titleRole").innerText = `Dashboard ${currentUser.role}`;
-        document.getElementById("subtitleName").innerText = currentUser.role === 'Operator' ? `Operator: ${currentUser.nama}` : 'Memantau seluruh aktivitas';
+        // Setup Const yang disiapkan untuk struktur referensi filter/input di pengembangan selanjutnya
+        const CONST_NAMA_OPERATOR = []; 
+        const CONST_BAGIAN = [];
+        const CONST_NOMOR_MESIN = [];
+        const CONST_TIPE_LENSA = [];
 
-        if (currentUser.role === 'Admin') {
-            document.getElementById("adminForm").style.display = "block";
-            document.getElementById("btnExport").classList.remove("hidden");
+        // Ambil URL Parameter (Token)
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token'); 
+        
+        const appDiv = document.getElementById('app');
+        const loadingDiv = document.getElementById('loading');
+        
+        // Inisialisasi Aplikasi
+        async function init() {
+            if (!token) {
+                loadingDiv.innerHTML = "Akses ditolak. Token tidak ditemukan di URL.";
+                return;
+            }
+
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                
+                loadingDiv.classList.add('hidden');
+                appDiv.classList.remove('hidden');
+
+                if (token.toLowerCase() === 'observer') {
+                    renderObserver(data);
+                } else {
+                    renderOperator(data, token);
+                }
+            } catch (error) {
+                loadingDiv.innerHTML = "Gagal mengambil data. Periksa koneksi internet.";
+            }
         }
 
-        renderCards();
-    }
+        // --- RENDER OPERATOR VIEW ---
+        function renderOperator(data, operatorName) {
+            document.getElementById('page-title').innerText = "Tugas Anda";
+            document.getElementById('page-subtitle').innerText = `Operator: ${operatorName}`;
+            
+            const myTasks = data.filter(item => item['Nama Operator'] === operatorName);
+            
+            if (myTasks.length === 0) {
+                appDiv.innerHTML = `<div class="card"><p style="text-align:center">Tidak ada tugas untuk saat ini.</p></div>`;
+                return;
+            }
 
-    // --- 4. RENDER DATA (CARD) ---
-    function renderCards() {
-        const container = document.getElementById("cardContainer");
-        container.innerHTML = "";
-
-        let displayData = appData;
-        if (currentUser.role === 'Operator') {
-            displayData = appData.filter(d => d.nama_operator === currentUser.nama);
-        }
-
-        displayData.forEach(item => {
-            const pct = item.plan_qty ? ((item.actual_qty || 0) / item.plan_qty * 100).toFixed(1) : 0;
-            let cardHtml = `
+            let html = '';
+            myTasks.forEach(task => {
+                html += `
                 <div class="card">
                     <div class="card-header">
-                        <span>${formatDate(item.tanggal_produksi)}</span>
-                        <span>Update: ${item.last_updated || '-'}</span>
+                        <h3>${task['Bagian']} - ${task['Tipe Lensa']}</h3>
+                        <span class="badge">Mesin: ${task['Nomor Mesin']}</span>
                     </div>
-                    <div class="card-title">${item.nomor_mesin} - ${item.tipe_lensa}</div>
-                    <div class="card-detail">
-                        <div><strong>Operator:</strong> ${item.nama_operator}</div>
-                        <div><strong>Bagian:</strong> ${item.bagian}</div>
-                        <div><strong>Plan Qty:</strong> ${item.plan_qty}</div>
-                        <div><strong>Actual Qty:</strong> ${item.actual_qty || 0}</div>
+                    <div class="data-grid">
+                        <div class="data-item"><span>Tanggal</span><strong>${task['Tanggal Produksi'] ? new Date(task['Tanggal Produksi']).toLocaleDateString('id-ID') : '-'}</strong></div>
+                        <div class="data-item"><span>Siklus</span><strong>${task['Siklus'] || '-'}</strong></div>
+                        <div class="data-item"><span>Plan Qty</span><strong style="color:var(--primary); font-size:16px">${task['Plan Qty']}</strong></div>
+                        <div class="data-item"><span>Status Update</span><strong id="time-${task.rowNumber}" style="font-size:11px; color:green">${task['Waktu Update'] || 'Belum diisi'}</strong></div>
                     </div>
-            `;
-
-            if (currentUser.role === 'Admin') {
-                cardHtml += `<button onclick='editAdmin(${JSON.stringify(item)})'>Edit Data</button>`;
-            } 
-            else if (currentUser.role === 'Operator') {
-                cardHtml += `
-                    <div class="form-group">
+                    
+                    <div class="input-group">
                         <label>Actual Qty</label>
-                        <input type="number" id="act_${item.id}" value="${item.actual_qty || ''}">
+                        <input type="number" id="actual-${task.rowNumber}" value="${task['Actual Qty'] || ''}" placeholder="Masukan hasil aktual">
                     </div>
-                    <div class="form-group">
+                    
+                    <div class="input-group">
+                        <!-- Tipe input textarea 4 baris -->
                         <label>Catatan Scrap</label>
-                        <textarea id="cat_${item.id}" rows="4">${item.catatan_scrap || ''}</textarea>
+                        <textarea id="scrap-${task.rowNumber}" rows="4" placeholder="Detail scrap...">${task['Catatan Scrap'] || ''}</textarea>
                     </div>
-                    <button onclick="saveOperator('${item.id}')">Update Hasil</button>
-                `;
+
+                    <div class="input-group">
+                        <label>Catatan Repair</label>
+                        <input type="text" id="repair-${task.rowNumber}" value="${task['Catatan Repair'] || ''}" placeholder="Detail repair...">
+                    </div>
+
+                    <button onclick="saveData(${task.rowNumber}, this)">Simpan Progress</button>
+                </div>`;
+            });
+            appDiv.innerHTML = html;
+        }
+
+        // --- RENDER OBSERVER VIEW ---
+        function renderObserver(data) {
+            document.getElementById('page-title').innerText = "Dashboard Observer";
+            document.getElementById('page-subtitle').innerText = "Ringkasan Pencapaian Keseluruhan";
+
+            let summary = {};
+
+            // Mengelompokkan data (Grouping)
+            data.forEach(item => {
+                if(!item['Bagian']) return; // Skip baris kosong
+                
+                let key = `${item['Bagian']} - ${item['Tipe Lensa']}`;
+                if (!summary[key]) {
+                    summary[key] = { bagian: item['Bagian'], lensa: item['Tipe Lensa'], plan: 0, actual: 0 };
+                }
+                summary[key].plan += Number(item['Plan Qty']) || 0;
+                summary[key].actual += Number(item['Actual Qty']) || 0;
+            });
+
+            let html = '';
+            for (const key in summary) {
+                const s = summary[key];
+                const percentage = s.plan > 0 ? ((s.actual / s.plan) * 100).toFixed(1) : 0;
+                
+                html += `
+                <div class="card summary-card">
+                    <div class="card-header" style="border-bottom:none; padding-bottom:0; margin-bottom:8px">
+                        <h3>${s.bagian}</h3>
+                        <span class="badge">${s.lensa}</span>
+                    </div>
+                    <div class="data-grid" style="margin-bottom:8px">
+                        <div class="data-item"><span>Total Plan</span><strong>${s.plan}</strong></div>
+                        <div class="data-item"><span>Total Actual</span><strong>${s.actual}</strong></div>
+                    </div>
+                    <div style="font-size:13px; font-weight:bold; margin-top:12px;">Ketercapaian: ${percentage}%</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${Math.min(percentage, 100)}%"></div>
+                    </div>
+                </div>`;
             }
-            else if (currentUser.role === 'Observer') {
-                cardHtml += `<div class="achievement">Ketercapaian: ${pct}%</div>
-                             <div style="margin-top:10px; font-size:0.9em;"><strong>Catatan:</strong><br>${item.catatan_scrap || '-'}</div>`;
+
+            if(Object.keys(summary).length === 0) {
+                html = `<div class="card"><p style="text-align:center">Belum ada data tersedia.</p></div>`;
             }
 
-            cardHtml += `</div>`;
-            container.innerHTML += cardHtml;
-        });
-    }
+            appDiv.innerHTML = html;
+        }
 
-    // --- 5. FUNGSI LOGIKA DATA ---
-    async function postData(payload) {
-        document.getElementById("loading").innerText = "Menyimpan...";
-        document.getElementById("loading").classList.remove("hidden");
-        document.getElementById("app").classList.add("hidden");
+        // --- FUNGSI UPDATE DATA KE SHEET ---
+        async function saveData(rowNum, btnElement) {
+            const actual = document.getElementById(`actual-${rowNum}`).value;
+            const scrap = document.getElementById(`scrap-${rowNum}`).value;
+            const repair = document.getElementById(`repair-${rowNum}`).value;
 
-        await fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify(payload)
-        });
-        
-        window.location.reload();
-    }
+            btnElement.innerText = "Menyimpan...";
+            btnElement.style.opacity = "0.7";
 
-    function saveData() {
-        const payload = {
-            action: 'save',
-            id: document.getElementById("inputId").value,
-            tanggal_produksi: document.getElementById("inputTanggal").value,
-            nama_operator: document.getElementById("inputNama").value,
-            bagian: document.getElementById("inputBagian").value,
-            nomor_mesin: document.getElementById("inputMesin").value,
-            tipe_lensa: document.getElementById("inputLensa").value,
-            plan_qty: document.getElementById("inputPlan").value,
-            actual_qty: document.getElementById("inputActual").value,
-            catatan_scrap: document.getElementById("inputCatatan").value,
-            last_updated: new Date().toLocaleString('id-ID')
-        };
-        postData(payload);
-    }
+            const payload = {
+                rowNumber: rowNum,
+                'Actual Qty': actual,
+                'Catatan Scrap': scrap,
+                'Catatan Repair': repair
+            };
 
-    function saveOperator(id) {
-        const item = appData.find(d => d.id == id);
-        const actualVal = document.getElementById(`act_${id}`).value;
-        const catatanVal = document.getElementById(`cat_${id}`).value;
-        
-        const payload = {
-            action: 'save',
-            id: item.id,
-            tanggal_produksi: item.tanggal_produksi,
-            nama_operator: item.nama_operator,
-            bagian: item.bagian,
-            nomor_mesin: item.nomor_mesin,
-            tipe_lensa: item.tipe_lensa,
-            plan_qty: item.plan_qty,
-            actual_qty: actualVal,
-            catatan_scrap: catatanVal,
-            last_updated: new Date().toLocaleString('id-ID')
-        };
-        postData(payload);
-    }
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                
+                btnElement.innerText = "Tersimpan!";
+                btnElement.style.background = "#16a34a"; // warna hijau
+                document.getElementById(`time-${rowNum}`).innerText = result.time;
 
-    function editAdmin(item) {
-        document.getElementById("inputId").value = item.id;
-        document.getElementById("inputTanggal").value = formatDateForInput(item.tanggal_produksi);
-        document.getElementById("inputNama").value = item.nama_operator;
-        document.getElementById("inputBagian").value = item.bagian;
-        document.getElementById("inputMesin").value = item.nomor_mesin;
-        document.getElementById("inputLensa").value = item.tipe_lensa;
-        document.getElementById("inputPlan").value = item.plan_qty;
-        document.getElementById("inputActual").value = item.actual_qty;
-        document.getElementById("inputCatatan").value = item.catatan_scrap;
-        window.scrollTo(0, 0);
-    }
+                setTimeout(() => {
+                    btnElement.innerText = "Simpan Progress";
+                    btnElement.style.background = "var(--primary)";
+                    btnElement.style.opacity = "1";
+                }, 2000);
 
-    function resetForm() {
-        document.getElementById("inputId").value = "";
-        document.getElementById("inputTanggal").value = "";
-        document.getElementById("inputNama").value = "";
-        document.getElementById("inputBagian").value = "";
-        document.getElementById("inputMesin").value = "";
-        document.getElementById("inputLensa").value = "";
-        document.getElementById("inputPlan").value = "";
-        document.getElementById("inputActual").value = "";
-        document.getElementById("inputCatatan").value = "";
-    }
+            } catch (error) {
+                alert("Gagal menyimpan data.");
+                btnElement.innerText = "Coba Lagi";
+                btnElement.style.opacity = "1";
+            }
+        }
 
-    function exportToExcel() {
-        let csv = "Tanggal,Nama Operator,Bagian,Mesin,Tipe Lensa,Plan Qty,Actual Qty,Catatan Scrap,Last Update\n";
-        appData.forEach(row => {
-            let r = [
-                formatDate(row.tanggal_produksi), row.nama_operator, row.bagian,
-                row.nomor_mesin, row.tipe_lensa, row.plan_qty, row.actual_qty, 
-                `"${row.catatan_scrap || ''}"`, row.last_updated
-            ];
-            csv += r.join(",") + "\n";
-        });
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.setAttribute('href', url);
-        a.setAttribute('download', 'Data_Produksi.csv');
-        a.click();
-    }
-
-    function formatDate(dateStr) {
-        if(!dateStr) return "-";
-        const d = new Date(dateStr);
-        return isNaN(d) ? dateStr : d.toLocaleDateString('id-ID');
-    }
-    
-    function formatDateForInput(dateStr) {
-        if(!dateStr) return "";
-        const d = new Date(dateStr);
-        return isNaN(d) ? "" : d.toISOString().split('T')[0];
-    }
-</script>
+        // Jalankan aplikasi saat halaman dimuat
+        init();
+    </script>
 </body>
 </html>
