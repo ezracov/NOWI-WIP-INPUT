@@ -5,7 +5,7 @@
 const CONFIG = {
   // Set to `true` for standalone local demo testing with localStorage.
   // Set to `false` when connecting to live Google Apps Script Web App.
-  USE_DEMO_LOCALSTORAGE: false,
+  USE_DEMO_LOCALSTORAGE: FALSE,
 
   // Paste your deployed Google Apps Script Web App URL here:
   // Example: "https://script.google.com/macros/s/AKfycbx.../exec"
