@@ -3,360 +3,476 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NOAS - PT Nagata Opto Works Indonesia</title>
+  <title>Aplikasi Penugasan & Ketercapaian Operator Produksi</title>
+  
+  <!-- Modern Typography (Inter Font) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/operator-mobile.css">
+  <link rel="stylesheet" href="css/observer-desktop.css">
 </head>
 <body>
 
-  <!-- Top Navigation & Role Bar -->
-  <header class="app-header">
-    <div class="header-container">
-      <div class="brand">
-        <div class="brand-logo">N</div>
-        <div class="brand-info">
-          <span class="brand-title">PT NAGATA OPTO WORKS INDONESIA</span>
-          <span class="brand-subtitle">Nagata Opto-Assign & Reporting System (NOAS)</span>
-        </div>
-      </div>
-
-      <div class="role-switcher">
-        <span class="switcher-label">Simulasi Akses Token:</span>
-        <button class="role-btn active" data-role="ppic" onclick="switchRole('ppic')">
-          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-          1. PPIC (Google Sheets)
-        </button>
-        <button class="role-btn" data-role="operator" onclick="switchRole('operator', 'opr-zq224')">
-          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-          2. Operator (Mobile Token)
-        </button>
-        <button class="role-btn" data-role="observer" onclick="switchRole('observer', 'observer9985')">
-          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-          3. Observer (Desktop PC)
-        </button>
+  <!-- TOP NAVBAR -->
+  <header class="top-navbar">
+    <div class="brand">
+      <div class="brand-logo">OP</div>
+      <div class="brand-text">
+        <h1>Penugasan Operator</h1>
+        <p>Optical Lens Manufacturing System</p>
       </div>
     </div>
-    <div class="token-bar" id="tokenBar">
-      <span class="token-icon">🔗</span>
-      <span class="token-label">Simulasi URL Token Aktif:</span>
-      <code id="activeUrlCode">https://noas.nagata-opto.co.id/</code>
+
+    <!-- Role Switcher Pills -->
+    <nav class="role-nav">
+      <button class="nav-btn active" data-role="operator">
+        📱 Operator <small style="opacity:0.7;">(Mobile)</small>
+      </button>
+      <button class="nav-btn" data-role="observer">
+        💻 Observer <small style="opacity:0.7;">(PC Dashboard)</small>
+      </button>
+      <button class="nav-btn" data-role="admin">
+        ⚙️ Admin <small style="opacity:0.7;">(Plan Manager)</small>
+      </button>
+    </nav>
+
+    <div class="nav-controls">
+      <span id="dbSyncStatusBadge" class="badge badge-repair">💾 Local Mode</span>
+      <button id="themeToggleBtn" class="icon-btn" title="Ganti Tema">🌓</button>
+      <button id="settingsModalBtn" class="icon-btn" title="Konfigurasi Google Sheets">⚙️</button>
     </div>
   </header>
 
-  <!-- Main Content Container -->
-  <main class="main-container">
+  <!-- MAIN WRAPPER -->
+  <main class="main-wrapper">
 
-    <!-- ==================== VIEW 1: PPIC GOOGLE SHEETS INTERFACE ==================== -->
-    <section id="view-ppic" class="view-section active">
-      <div class="section-header">
-        <div>
-          <h2>📊 Modul PPIC - Entri Penugasan Work Order (Google Sheets View)</h2>
-          <p class="section-desc">Data di bawah ini tersinkronisasi otomatis dari Google Sheets PPIC ke aplikasi smartphone Operator & Observer.</p>
-        </div>
-        <button class="btn btn-primary" onclick="openAddAssignmentModal()">
-          <span>+ Tambah Penugasan Baru</span>
-        </button>
-      </div>
-
-      <div class="sheet-container">
-        <div class="sheet-top-bar">
-          <div class="sheet-badge">
-            <span class="dot green"></span> Google Sheets Status: Connected & Live Syncing
-          </div>
-          <div class="sheet-actions">
-            <button class="btn btn-secondary btn-sm" onclick="resetDefaultData()">Reset Sample Data</button>
-          </div>
-        </div>
-
-        <div class="table-responsive">
-          <table class="data-table sheet-table">
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>Tanggal</th>
-                <th>Shift</th>
-                <th>Siklus</th>
-                <th>Section</th>
-                <th>Nama Operator</th>
-                <th>No. Mesin</th>
-                <th>Tipe Lensa</th>
-                <th>Plan Qty</th>
-                <th>Actual Qty</th>
-                <th>Token Link Operator</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody id="ppicTableBody">
-              <!-- Rendered dynamically -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- ==================== VIEW 2: OPERATOR SMARTPHONE VIEW ==================== -->
-    <section id="view-operator" class="view-section">
-      <div class="mobile-wrapper">
-        <div class="mobile-frame">
-          <div class="mobile-header">
-            <div class="mobile-status-bar">
-              <span>09:41</span>
-              <span>📶 🔋 100%</span>
-            </div>
-            <div class="mobile-app-bar">
-              <div class="app-title">NAGATA OPTO WORKER</div>
-              <div class="token-chip" id="oprTokenChip">Token: opr-zq224</div>
-            </div>
-          </div>
-
-          <div class="mobile-content">
-
-            <!-- Operator Select Dropdown if simulating tokens -->
-            <div class="operator-selector-card" id="operatorSelectCard">
-              <label for="operatorTokenSelect">Pilih Token Operator (Simulasi Token):</label>
-              <select id="operatorTokenSelect" class="form-control" onchange="onOperatorSelectChange(this.value)">
-                <!-- Options populated dynamically -->
-              </select>
-            </div>
-
-            <!-- TAHAP 1: SUMMARY DAFTAR PENUGASAN OPERATOR (LIST VIEW) -->
-            <div id="operatorSummaryScreen">
-              <div class="screen-title-box">
-                <h3 id="oprWelcomeName">Daftar Penugasan Operator</h3>
-                <p class="screen-sub" id="oprTaskCountSub">Pilih salah satu penugasan di bawah ini untuk mengisi pelaporan:</p>
-              </div>
-
-              <div class="task-summary-list" id="oprTaskSummaryList">
-                <!-- Dynamically populated list of assignment cards -->
-              </div>
-            </div>
-
-            <!-- TAHAP 2: DETAIL PENUGASAN & FORM INPUT (DETAIL VIEW) -->
-            <div id="operatorDetailScreen" style="display: none;">
-              
-              <button class="btn btn-secondary btn-sm nav-back-btn" onclick="backToOperatorSummary()">
-                ⬅ Kembali ke Daftar Penugasan
-              </button>
-
-              <!-- Header Card Penugasan -->
-              <div class="card assignment-card" id="operatorAssignmentCard">
-                <div class="card-top">
-                  <div class="tags-row">
-                    <span class="badge badge-shift" id="oprShiftBadge">Shift 1</span>
-                    <span class="badge badge-siklus" id="oprSiklusBadge">PRODUKSI</span>
-                    <span class="badge badge-section" id="oprSectionBadge">Fine Polishing</span>
-                  </div>
-                  <!-- Small Progress Percentage Badge -->
-                  <div class="mini-progress-badge" id="oprMiniProgress">
-                    <span class="progress-percent" id="oprPercentText">45%</span>
-                    <span class="progress-sub" id="oprRatioText">225 / 500 pcs</span>
-                    <div class="mini-bar-bg">
-                      <div class="mini-bar-fill" id="oprMiniBarFill" style="width: 45%;"></div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="assignment-details">
-                  <div class="detail-item">
-                    <span class="detail-label">Tanggal Produksi:</span>
-                    <span class="detail-value" id="oprTanggal">2026-07-28</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Nama Operator:</span>
-                    <span class="detail-value highlight" id="oprNama">Budi Santoso</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Nomor Mesin:</span>
-                    <span class="detail-value" id="oprMesin">POL-04</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Tipe Lensa:</span>
-                    <span class="detail-value" id="oprTipeLensa">R-Optic 50mm High-Precision</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Target (Plan Qty):</span>
-                    <span class="detail-value bold" id="oprPlanQty">500 pcs</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Form Input Output Qty 1..12 -->
-              <div class="card form-card">
-                <div class="card-title">
-                  <span>📝 Input Output Jam-an (qty1 s/d qty12)</span>
-                </div>
-                
-                <div class="qty-grid">
-                  <div class="qty-field"><label>Qty 1</label><input type="number" min="0" class="qty-input" id="qty1" oninput="calculateOperatorTotals()"></div>
-                  <div class="qty-field"><label>Qty 2</label><input type="number" min="0" class="qty-input" id="qty2" oninput="calculateOperatorTotals()"></div>
-                  <div class="qty-field"><label>Qty 3</label><input type="number" min="0" class="qty-input" id="qty3" oninput="calculateOperatorTotals()"></div>
-                  <div class="qty-field"><label>Qty 4</label><input type="number" min="0" class="qty-input" id="qty4" oninput="calculateOperatorTotals()"></div>
-                  <div class="qty-field"><label>Qty 5</label><input type="number" min="0" class="qty-input" id="qty5" oninput="calculateOperatorTotals()"></div>
-                  <div class="qty-field"><label>Qty 6</label><input type="number" min="0" class="qty-input" id="qty6" oninput="calculateOperatorTotals()"></div>
-                  <div class="qty-field"><label>Qty 7</label><input type="number" min="0" class="qty-input" id="qty7" oninput="calculateOperatorTotals()"></div>
-                  <div class="qty-field"><label>Qty 8</label><input type="number" min="0" class="qty-input" id="qty8" oninput="calculateOperatorTotals()"></div>
-                  <div class="qty-field"><label>Qty 9</label><input type="number" min="0" class="qty-input" id="qty9" oninput="calculateOperatorTotals()"></div>
-                  <div class="qty-field"><label>Qty 10</label><input type="number" min="0" class="qty-input" id="qty10" oninput="calculateOperatorTotals()"></div>
-                  <div class="qty-field"><label>Qty 11</label><input type="number" min="0" class="qty-input" id="qty11" oninput="calculateOperatorTotals()"></div>
-                  <div class="qty-field"><label>Qty 12</label><input type="number" min="0" class="qty-input" id="qty12" oninput="calculateOperatorTotals()"></div>
-                </div>
-
-                <div class="calc-summary">
-                  <div class="calc-item">
-                    <span>Total Actual Output:</span>
-                    <strong id="oprTotalActual">0 pcs</strong>
-                  </div>
-                  <div class="calc-item">
-                    <span>Progress Ratio:</span>
-                    <strong id="oprCalcRatio">0 / 500 pcs</strong>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Form Scrap (Field Teks Bebas) & Kendala -->
-              <div class="card form-card">
-                <div class="card-title">
-                  <span>⚠️ Catatan Scrap & Kendala Mesin</span>
-                </div>
-                <div class="form-group">
-                  <label for="oprScrapText">Catatan Scrap (Field Teks Bebas):</label>
-                  <textarea id="oprScrapText" rows="2" placeholder="Tuliskan rincian scrap (contoh: 3 pcs retak tepi, 2 pcs scratch optik...)" class="form-control"></textarea>
-                </div>
-                <div class="form-group">
-                  <label for="oprKendala">Kendala yang Dihadapi (Jika ada):</label>
-                  <textarea id="oprKendala" rows="2" placeholder="Contoh: Mesin overheat 15 menit, slurry kental..." class="form-control"></textarea>
-                </div>
-              </div>
-
-              <!-- Submit Button -->
-              <button class="btn btn-success btn-block" onclick="saveOperatorReport()">
-                💾 Simpan & Update Laporan Hasil Kerja
-              </button>
-
-              <div class="save-toast" id="saveToast">✅ Laporan berhasil disimpan & tersinkron ke Observer & PPIC!</div>
-
-            </div>
-
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ==================== VIEW 3: OBSERVER DESKTOP PC VIEW ==================== -->
-    <section id="view-observer" class="view-section">
-      <div class="observer-desktop-container">
+    <!-- ===================================================================
+         VIEW 1: OPERATOR SMARTPHONE INTERFACE (Fitur 2, 3, 4)
+         =================================================================== -->
+    <section id="view-operator" class="view-section active">
+      <div class="operator-container">
         
-        <div class="observer-header">
+        <!-- Profile Header -->
+        <div class="operator-profile-card">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div id="opAvatar" class="operator-avatar">OP</div>
+            <div class="operator-details">
+              <h3 id="opName">Loading Operator...</h3>
+              <p id="opDept">Bagian: -</p>
+            </div>
+          </div>
           <div>
-            <h2>🖥️ Observer Dashboard Summary - PT Nagata Opto Works Indonesia</h2>
-            <p class="section-desc">Tampilan monitoring desktop real-time hasil kerja seluruh operator dan status lini produksi.</p>
-          </div>
-          <div class="observer-status">
-            <span class="live-dot"></span> Real-time Live Monitoring Active
+            <div id="opTokenChip" class="token-chip">TOKEN: -</div>
           </div>
         </div>
 
-        <!-- Filter Bar (Shift, Siklus, Section, Tipe Lensa, Tanggal) -->
-        <div class="filter-card">
-          <div class="filter-title">🔍 Filter Multi-Parameter:</div>
-          <div class="filter-grid">
-            <div class="filter-group">
-              <label>Tanggal Produksi:</label>
-              <input type="date" id="filterTanggal" onchange="applyObserverFilters()" class="filter-control">
-            </div>
-            <div class="filter-group">
-              <label>Shift:</label>
-              <select id="filterShift" onchange="applyObserverFilters()" class="filter-control">
-                <option value="ALL">Semua Shift</option>
-                <option value="1">Shift 1</option>
-                <option value="2">Shift 2</option>
-                <option value="3">Shift 3</option>
-              </select>
-            </div>
-            <div class="filter-group">
-              <label>Siklus:</label>
-              <select id="filterSiklus" onchange="applyObserverFilters()" class="filter-control">
-                <option value="ALL">Semua Siklus</option>
-                <option value="PRODUKSI">PRODUKSI</option>
-                <option value="REPAIR">REPAIR</option>
-                <option value="RWK">RWK</option>
-              </select>
-            </div>
-            <div class="filter-group">
-              <label>Section:</label>
-              <select id="filterSection" onchange="applyObserverFilters()" class="filter-control">
-                <option value="ALL">Semua Section</option>
-                <option value="Grinding">Grinding</option>
-                <option value="Fine Polishing">Fine Polishing</option>
-                <option value="Centering">Centering</option>
-                <option value="Coating">Coating</option>
-                <option value="QC Inspection">QC Inspection</option>
-              </select>
-            </div>
-            <div class="filter-group">
-              <label>Tipe Lensa:</label>
-              <select id="filterTipeLensa" onchange="applyObserverFilters()" class="filter-control">
-                <!-- Dynamically populated -->
-              </select>
-            </div>
+        <!-- Quick Switcher Operator (For Testing Multi-User Token on PC) -->
+        <div class="card" style="padding:10px 14px; margin-bottom:12px; font-size:0.8rem; background:rgba(15,23,42,0.4);">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:var(--text-secondary);">Simulasi Login Operator:</span>
+            <select id="opQuickSelector" class="form-control" style="width:auto; padding:4px 8px; font-size:0.78rem;" onchange="window.location.href='?token=' + this.value">
+              <option value="OP-BUDI-01">Budi Santoso (Coating)</option>
+              <option value="OP-ANI-02">Ani Wijaya (Polishing)</option>
+              <option value="OP-CITRA-03">Citra Lestari (Grinding)</option>
+              <option value="OP-DEDI-04">Dedi Kurniawan (Edging)</option>
+            </select>
           </div>
         </div>
 
-        <!-- Executive KPI Grid -->
+        <!-- Navigation Tabs: Form Input vs Riwayat -->
+        <div class="operator-tabs">
+          <button id="tabOpInput" class="op-tab-btn active">📝 Input Pencapaian</button>
+          <button id="tabOpHistory" class="op-tab-btn">📋 Riwayat Saya</button>
+        </div>
+
+        <!-- SUB-VIEW A: FORM INPUT PENCAPAIAN -->
+        <div id="opViewInputContainer">
+          
+          <h4 style="font-size:0.9rem; color:var(--text-secondary); margin-bottom:10px;">PILIH WORK ORDER / PLAN:</h4>
+          <div id="opPlanListContainer">
+            <!-- Work order cards rendered by js/operator.js -->
+          </div>
+
+          <!-- FORM INPUT -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Input Achievement</div>
+              <span id="selectedPlanQtyBadge" class="badge badge-info">Target: 0 Pcs</span>
+            </div>
+
+            <form id="operatorAchievementForm">
+              
+              <!-- Kondisi Selector (PRODUKSI, REPAIR, RWK) -->
+              <div class="form-group">
+                <label>KONDISI PRODUKSI:</label>
+                <div class="kondisi-selector">
+                  <div class="kondisi-option">
+                    <input type="radio" name="opKondisi" id="kondisiProduksi" value="PRODUKSI" checked>
+                    <label for="kondisiProduksi" class="kondisi-label">
+                      <span>🟢 PRODUKSI</span>
+                      <small style="font-size:0.65rem; font-weight:normal;">Normal</small>
+                    </label>
+                  </div>
+                  <div class="kondisi-option">
+                    <input type="radio" name="opKondisi" id="kondisiRepair" value="REPAIR">
+                    <label for="kondisiRepair" class="kondisi-label">
+                      <span>🟡 REPAIR</span>
+                      <small style="font-size:0.65rem; font-weight:normal;">Perbaikan</small>
+                    </label>
+                  </div>
+                  <div class="kondisi-option">
+                    <input type="radio" name="opKondisi" id="kondisiRwk" value="RWK">
+                    <label for="kondisiRwk" class="kondisi-label">
+                      <span>🔴 RWK</span>
+                      <small style="font-size:0.65rem; font-weight:normal;">Rework</small>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Input Siklus -->
+              <div class="form-group">
+                <label for="opSiklusInput">SIKLUS PRODUKSI:</label>
+                <div class="touch-input-group">
+                  <button type="button" id="btnDecSiklus" class="touch-btn">-</button>
+                  <input type="text" id="opSiklusInput" class="form-control" value="Siklus 1" required>
+                  <button type="button" id="btnIncSiklus" class="touch-btn">+</button>
+                </div>
+              </div>
+
+              <!-- Input Actual Qty -->
+              <div class="form-group">
+                <label for="opActualQty">ACTUAL QTY (Pcs):</label>
+                <div class="touch-input-group">
+                  <button type="button" id="btnDecQty" class="touch-btn">-</button>
+                  <input type="number" id="opActualQty" class="form-control" min="0" required placeholder="Hasil aktual...">
+                  <button type="button" id="btnIncQty" class="touch-btn">+</button>
+                </div>
+              </div>
+
+              <!-- Catatan Scrap -->
+              <div class="form-group">
+                <label for="opCatatanScrap">CATATAN SCRAP (Jika Ada):</label>
+                <input type="text" id="opCatatanScrap" class="form-control" placeholder="Contoh: 3 pcs lensa tergores...">
+              </div>
+
+              <!-- Catatan Kendala -->
+              <div class="form-group">
+                <label for="opCatatanKendala">CATATAN KENDALA (Jika Ada):</label>
+                <textarea id="opCatatanKendala" class="form-control" rows="2" placeholder="Contoh: Mesin overheat 15 menit..."></textarea>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-block" style="padding:14px; font-size:1.05rem;">
+                🚀 SIMPAN KE GOOGLE SHEET
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- SUB-VIEW B: RIWAYAT INPUT SAYA (FITUR 3) -->
+        <div id="opViewHistoryContainer" style="display:none;">
+          <h4 style="font-size:0.9rem; color:var(--text-secondary); margin-bottom:10px;">RIWAYAT INPUT TERKIRIM:</h4>
+          <div id="opHistoryListContainer">
+            <!-- Rendered by js/operator.js -->
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         VIEW 2: OBSERVER PC DASHBOARD (Fitur 5, 6)
+         =================================================================== -->
+    <section id="view-observer" class="view-section">
+      <div class="observer-container">
+        
+        <!-- Header Controls -->
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <h2 style="font-size:1.4rem; font-weight:800;">Dashboard Ketercapaian Produksi</h2>
+            <p style="color:var(--text-secondary); font-size:0.85rem;">Ringkasan pencapaian operator disummary berdasarkan [Bagian, Tipe Lensa]</p>
+          </div>
+          <button id="btnRefreshObserver" class="btn btn-secondary btn-sm">
+            🔄 Refresh Data
+          </button>
+        </div>
+
+        <!-- Filter Control Bar (FITUR 6: Observer memilih Bagian mana saja) -->
+        <div class="filter-bar">
+          <div class="filter-group">
+            <span class="filter-label">🎯 Filter Display Bagian:</span>
+            <div id="bagianFilterPills" class="bagian-pills">
+              <!-- Rendered by js/observer.js -->
+            </div>
+          </div>
+          <div style="width:240px;">
+            <input type="text" id="observerSearchInput" class="form-control" placeholder="🔍 Cari operator / lensa..." style="padding:6px 12px; font-size:0.82rem;">
+          </div>
+        </div>
+
+        <!-- Overview KPI Cards -->
         <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-label">Total Target (Plan Qty)</div>
-            <div class="kpi-value" id="kpiPlan">0</div>
-            <div class="kpi-sub">pcs terdaftar</div>
+          <div class="kpi-card kpi-info">
+            <div class="kpi-icon">🎯</div>
+            <div class="kpi-info">
+              <label>TOTAL TARGET PLAN</label>
+              <div id="kpiTotalTarget" class="kpi-value">0 Pcs</div>
+              <div class="kpi-subtext">Dari Sheet "plan"</div>
+            </div>
           </div>
-          <div class="kpi-card highlight-blue">
-            <div class="kpi-label">Total Actual Output</div>
-            <div class="kpi-value" id="kpiActual">0</div>
-            <div class="kpi-sub">pcs terproduksi</div>
+
+          <div class="kpi-card kpi-success">
+            <div class="kpi-icon">📦</div>
+            <div class="kpi-info">
+              <label>TOTAL ACTUAL HASIL</label>
+              <div id="kpiTotalActual" class="kpi-value">0 Pcs</div>
+              <div class="kpi-subtext">Tersimpan di Sheet "achievement"</div>
+            </div>
           </div>
-          <div class="kpi-card highlight-green">
-            <div class="kpi-label">Achievement Rate</div>
-            <div class="kpi-value" id="kpiPercent">0%</div>
-            <div class="kpi-sub">overall ketercapaian</div>
+
+          <div class="kpi-card kpi-warning">
+            <div class="kpi-icon">📊</div>
+            <div class="kpi-info">
+              <label>% KETERCAPAIAN</label>
+              <div id="kpiAchievementRate" class="kpi-value">0.0%</div>
+              <div class="kpi-subtext">Rasio Actual vs Target</div>
+            </div>
           </div>
-          <div class="kpi-card highlight-red">
-            <div class="kpi-label">Total Operator / Penugasan</div>
-            <div class="kpi-value" id="kpiAssignments">0</div>
-            <div class="kpi-sub">work orders aktif</div>
+
+          <div class="kpi-card kpi-danger">
+            <div class="kpi-icon">⚠️</div>
+            <div class="kpi-info">
+              <label>Rincian Kondisi</label>
+              <div id="kpiScrapAlerts" class="kpi-value" style="font-size:1.1rem;">0 Prod | 0 Rep | 0 RWK</div>
+              <div class="kpi-subtext">Produksi vs Repair vs RWK</div>
+            </div>
           </div>
         </div>
 
-        <!-- Detailed Summary Data Table (Wide Desktop Grid) -->
-        <div class="card table-card">
-          <div class="card-header-flex">
-            <h3>📋 Ringkasan Hasil Penugasan & Kinerja Operator</h3>
-            <span class="counter-badge" id="recordCounterBadge">0 Penugasan Tampil</span>
+        <!-- FITUR 5: Summary Matrix Table Grouped by [Bagian, Tipe Lensa] -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              📊 Summary Ketercapaian per [Bagian, Tipe Lensa]
+            </div>
+            <small style="color:var(--text-muted);">Format Agregasi otomatis untuk analisis Observer</small>
           </div>
 
           <div class="table-responsive">
-            <table class="data-table observer-table">
+            <table class="custom-table">
               <thead>
                 <tr>
-                  <th>No</th>
-                  <th>Shift</th>
-                  <th>Siklus</th>
-                  <th>Section</th>
+                  <th>Bagian</th>
+                  <th>Tipe Lensa</th>
+                  <th>Total Target (Plan)</th>
+                  <th>Total Actual (Hasil)</th>
+                  <th>% Ketercapaian</th>
+                  <th>Breakdown Kondisi</th>
+                  <th>Status KPI</th>
+                </tr>
+              </thead>
+              <tbody id="observerSummaryTableBody">
+                <!-- Rendered dynamically by js/observer.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Detailed Input Logs Table -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📜 Detail Log Achievement Operator</div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
                   <th>Nama Operator</th>
+                  <th>Bagian</th>
+                  <th>Kondisi</th>
                   <th>No. Mesin</th>
                   <th>Tipe Lensa</th>
                   <th>Plan Qty</th>
-                  <th>Qty (1-12) Breakdown</th>
-                  <th>Total Actual</th>
-                  <th>% Progress</th>
-                  <th>Catatan Scrap (Teks Bebas)</th>
-                  <th>Kendala Operator</th>
-                  <th>Status</th>
+                  <th>Actual Qty</th>
+                  <th>Catatan Scrap</th>
+                  <th>Catatan Kendala</th>
                 </tr>
               </thead>
-              <tbody id="observerTableBody">
-                <!-- Dynamically populated -->
+              <tbody id="observerLogsTableBody">
+                <!-- Rendered dynamically by js/observer.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         VIEW 3: ADMIN PLAN MANAGER & TOKEN GENERATOR (Fitur 1, 4)
+         =================================================================== -->
+    <section id="view-admin" class="view-section">
+      <div class="observer-container">
+        
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <h2 style="font-size:1.4rem; font-weight:800;">Admin Sheet & Token Manager</h2>
+            <p style="color:var(--text-secondary); font-size:0.85rem;">Input data plan langsung ke sheet "plan" dan kelola Token URL Operator</p>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+          
+          <!-- FITUR 1 FORM: Admin Memasukkan Data ke Sheet "plan" -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">➕ Input Data Plan Baru</div>
+            </div>
+
+            <form id="adminPlanForm">
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div class="form-group">
+                  <label for="planTanggalProduksi">Tanggal Produksi:</label>
+                  <input type="date" id="planTanggalProduksi" class="form-control" required>
+                </div>
+                <div class="form-group">
+                  <label for="planShift">Shift:</label>
+                  <select id="planShift" class="form-control">
+                    <option value="Shift 1">Shift 1</option>
+                    <option value="Shift 2">Shift 2</option>
+                    <option value="Shift 3">Shift 3</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div class="form-group">
+                  <label for="planNamaOperator">Nama Operator:</label>
+                  <input type="text" id="planNamaOperator" class="form-control" placeholder="Contoh: Budi Santoso" required>
+                </div>
+                <div class="form-group">
+                  <label for="planBagian">Bagian:</label>
+                  <select id="planBagian" class="form-control">
+                    <option value="Coating">Coating</option>
+                    <option value="Polishing">Polishing</option>
+                    <option value="Grinding">Grinding</option>
+                    <option value="Edging">Edging</option>
+                    <option value="Final QC">Final QC</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div class="form-group">
+                  <label for="planNomorMesin">Nomor Mesin:</label>
+                  <input type="text" id="planNomorMesin" class="form-control" placeholder="Contoh: CT-01" required>
+                </div>
+                <div class="form-group">
+                  <label for="planQty">Plan Qty (Pcs):</label>
+                  <input type="number" id="planQty" class="form-control" min="1" placeholder="150" required>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="planTipeLensa">Tipe Lensa:</label>
+                <input type="text" id="planTipeLensa" class="form-control" placeholder="Contoh: Progressif Freeform 1.67" required>
+              </div>
+
+              <div class="form-group">
+                <label for="planCatatanTarget">Catatan Target:</label>
+                <input type="text" id="planCatatanTarget" class="form-control" placeholder="Catatan instruksi khusus...">
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-block">
+                💾 Simpan Ke Sheet "plan"
+              </button>
+            </form>
+          </div>
+
+          <!-- FITUR 4 FORM: Generator Token URL Unik Operator -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">🔑 Generator Token URL Operator</div>
+            </div>
+
+            <form id="adminTokenForm">
+              <div class="form-group">
+                <label for="tokenCode">Token Unik:</label>
+                <input type="text" id="tokenCode" class="form-control" placeholder="Contoh: OP-BUDI-01" required>
+              </div>
+              <div class="form-group">
+                <label for="tokenNamaOperator">Nama Operator Terkait:</label>
+                <input type="text" id="tokenNamaOperator" class="form-control" placeholder="Contoh: Budi Santoso" required>
+              </div>
+              <div class="form-group">
+                <label for="tokenBagian">Bagian:</label>
+                <select id="tokenBagian" class="form-control">
+                  <option value="Coating">Coating</option>
+                  <option value="Polishing">Polishing</option>
+                  <option value="Grinding">Grinding</option>
+                  <option value="Edging">Edging</option>
+                  <option value="Final QC">Final QC</option>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-secondary btn-block">
+                ✨ Buat Token URL Baru
+              </button>
+            </form>
+          </div>
+
+        </div>
+
+        <!-- Table View of Sheet "plan" -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📄 Daftar Target Plan (Sheet "plan")</div>
+          </div>
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Tanggal</th>
+                  <th>Shift</th>
+                  <th>Operator</th>
+                  <th>Bagian</th>
+                  <th>No. Mesin</th>
+                  <th>Tipe Lensa</th>
+                  <th>Plan Qty</th>
+                  <th>Catatan Target</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="adminPlanTableBody">
+                <!-- Rendered by js/admin.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Table View of Operator Tokens -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🔗 Daftar URL Token Operator (Fitur 4)</div>
+          </div>
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th>Token</th>
+                  <th>Nama Operator</th>
+                  <th>Bagian</th>
+                  <th>URL Unik Login</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="adminTokenTableBody">
+                <!-- Rendered by js/admin.js -->
               </tbody>
             </table>
           </div>
@@ -367,90 +483,43 @@
 
   </main>
 
-  <!-- Add New Assignment Modal for PPIC -->
-  <div class="modal" id="addModal">
-    <div class="modal-content">
+  <!-- SETTINGS / GOOGLE SHEETS CONFIG MODAL -->
+  <div id="settingsModal" class="modal-overlay">
+    <div class="modal">
       <div class="modal-header">
-        <h3>+ Tambah Penugasan Baru (PPIC)</h3>
-        <button class="modal-close" onclick="closeAddAssignmentModal()">&times;</button>
+        <h3 style="font-size:1.1rem; font-weight:700;">⚙️ Konfigurasi Google Sheets Backend</h3>
+        <button id="closeSettingsModalBtn" class="icon-btn">✕</button>
       </div>
-      <div class="modal-body">
-        <form id="addAssignmentForm" onsubmit="handleAddAssignment(event)">
-          <div class="form-row">
-            <div class="form-group">
-              <label>Tanggal Produksi:</label>
-              <input type="date" id="newTanggal" required class="form-control">
-            </div>
-            <div class="form-group">
-              <label>Shift:</label>
-              <select id="newShift" required class="form-control">
-                <option value="1">Shift 1</option>
-                <option value="2">Shift 2</option>
-                <option value="3">Shift 3</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label>Siklus:</label>
-              <select id="newSiklus" required class="form-control">
-                <option value="PRODUKSI">PRODUKSI</option>
-                <option value="REPAIR">REPAIR</option>
-                <option value="RWK">RWK</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Section:</label>
-              <select id="newSection" required class="form-control">
-                <option value="Grinding">Grinding</option>
-                <option value="Fine Polishing">Fine Polishing</option>
-                <option value="Centering">Centering</option>
-                <option value="Coating">Coating</option>
-                <option value="QC Inspection">QC Inspection</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label>Nama Operator:</label>
-              <input type="text" id="newNama" placeholder="Contoh: Budi Santoso" required class="form-control">
-            </div>
-            <div class="form-group">
-              <label>Nomor Mesin:</label>
-              <input type="text" id="newMesin" placeholder="Contoh: CG-02 / POL-05" required class="form-control">
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label>Tipe Lensa:</label>
-              <input type="text" id="newTipeLensa" placeholder="Contoh: R-Optic 50mm" required class="form-control">
-            </div>
-            <div class="form-group">
-              <label>Plan Qty (Target):</label>
-              <input type="number" id="newPlanQty" min="1" placeholder="500" required class="form-control">
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group" style="grid-column: span 2;">
-              <label>Token Operator (Bisa digunakan sama untuk multi-penugasan):</label>
-              <input type="text" id="newToken" placeholder="Contoh: opr-zq224 (biarkan kosong untuk auto-generate)" class="form-control">
-            </div>
-          </div>
-
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="closeAddAssignmentModal()">Batal</button>
-            <button type="submit" class="btn btn-primary">Simpan ke Sheets</button>
-          </div>
-        </form>
+      
+      <div class="form-group">
+        <label for="googleSheetsUrlInput">Google Apps Script Web App URL:</label>
+        <input type="url" id="googleSheetsUrlInput" class="form-control" placeholder="https://script.google.com/macros/s/.../exec">
+        <small style="color:var(--text-muted); display:block; margin-top:6px;">
+          Tempel URL Web App dari Google Apps Script yang telah di-deploy. Jika dikosongkan, aplikasi akan menggunakan mode <strong>Local Storage / Mock Database</strong> untuk pengujian.
+        </small>
       </div>
+
+      <div style="background:rgba(15,23,42,0.6); padding:12px; border-radius:8px; margin-bottom:16px; font-size:0.8rem; border:1px solid var(--border-color);">
+        <strong style="color:var(--accent-teal);">💡 Panduan Deploy Google Apps Script:</strong>
+        <ol style="margin-left:16px; margin-top:6px; color:var(--text-secondary);">
+          <li>Buka file <code>google_apps_script.gs</code> di direktori proyek.</li>
+          <li>Salin seluruh isinya ke Ekstensi > Apps Script di Google Sheets Anda.</li>
+          <li>Deploy sebagai Web App ("Anyone" access / Siapa saja).</li>
+          <li>Salin Web App URL ke kotak input di atas.</li>
+        </ol>
+      </div>
+
+      <button id="saveSettingsBtn" class="btn btn-primary btn-block">
+        💾 Simpan Konfigurasi
+      </button>
     </div>
   </div>
 
-  <script src="config.js"></script>
-  <script src="app.js"></script>
+  <!-- JavaScript Files -->
+  <script src="js/store.js"></script>
+  <script src="js/operator.js"></script>
+  <script src="js/observer.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
