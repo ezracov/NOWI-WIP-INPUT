@@ -1,0 +1,392 @@
+// --- KONFIGURASI TOKEN DAN API ---
+const USER_TOKENS = {
+  "OPT-001": { name: "Budi Santoso", role: "OPERATOR" },
+  "OPT-002": { name: "Siti Aminah", role: "OPERATOR" },
+  "OBS-001": { name: "Supervisor QC", role: "OBSERVER" }
+};
+
+// Ganti URL ini dengan Web App Deployment URL dari Google Apps Script Anda
+const GAS_API_URL = "https://script.google.com/macros/s/AKfycby3gBdjKqx1NLOGxwhmoHyu5FQ5_cuX2SwdNXxJuFSPpKoTYa-3Y4yiEUshI4caSSKdKQ/exec";
+
+// State Aplikasi
+let currentUser = null;
+let rawPlanData = [];
+let rawAchievementData = [];
+
+// Element References
+const loginScreen = document.getElementById("login-screen");
+const appScreen = document.getElementById("app-screen");
+const loginForm = document.getElementById("login-form");
+const tokenInput = document.getElementById("token-input");
+const userNameDisplay = document.getElementById("user-name-display");
+const userRoleBadge = document.getElementById("user-role-badge");
+const logoutBtn = document.getElementById("logout-btn");
+
+const operatorView = document.getElementById("operator-view");
+const observerView = document.getElementById("observer-view");
+
+const woInputModal = document.getElementById("wo-input-modal");
+const operatorInputForm = document.getElementById("operator-input-form");
+
+// --- INITIALIZATION & ROUTING ---
+document.addEventListener("DOMContentLoaded", () => {
+  // Cek parameter token di URL (misal: ?token=OPT-001)
+  const urlParams = new URLSearchParams(window.location.search);
+  const tokenParam = urlParams.get("token");
+
+  if (tokenParam && USER_TOKENS[tokenParam]) {
+    authenticateUser(tokenParam);
+  } else {
+    showLoginScreen();
+  }
+
+  setupEventListeners();
+});
+
+function setupEventListeners() {
+  loginForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const token = tokenInput.value.trim();
+    if (USER_TOKENS[token]) {
+      authenticateUser(token);
+    } else {
+      alert("Token tidak ditemukan / tidak valid!");
+    }
+  });
+
+  logoutBtn.addEventListener("click", () => {
+    currentUser = null;
+    window.history.replaceState({}, document.title, window.location.pathname);
+    showLoginScreen();
+  });
+
+  // Tab operator Navigation
+  document.getElementById("tab-wo-btn").addEventListener("click", (e) => {
+    switchTab("tab-wo-content", e.target);
+  });
+  document.getElementById("tab-history-btn").addEventListener("click", (e) => {
+    switchTab("tab-history-content", e.target);
+  });
+
+  // Modal Controls
+  document.getElementById("modal-close-btn").addEventListener("click", closeModal);
+  document.getElementById("modal-cancel-btn").addEventListener("click", closeModal);
+  operatorInputForm.addEventListener("submit", handleOperatorSubmit);
+
+  // Observer Filter
+  document.getElementById("btn-apply-filter").addEventListener("click", renderObserverDashboard);
+}
+
+function switchTab(tabContentId, targetBtn) {
+  document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
+  
+  document.getElementById(tabContentId).classList.add("active");
+  targetBtn.classList.add("active");
+}
+
+function showLoginScreen() {
+  loginScreen.classList.remove("hidden");
+  appScreen.classList.add("hidden");
+}
+
+function authenticateUser(token) {
+  currentUser = { token: token, ...USER_TOKENS[token] };
+  
+  userNameDisplay.textContent = currentUser.name;
+  userRoleBadge.textContent = currentUser.role;
+
+  loginScreen.classList.add("hidden");
+  appScreen.classList.remove("hidden");
+
+  fetchDataAndRender();
+}
+
+// --- FETCH DATA DARI GOOGLE SHEETS ---
+async function fetchDataAndRender() {
+  try {
+    const [planRes, achRes] = await Promise.all([
+      fetch(`${GAS_API_URL}?action=getPlanData`),
+      fetch(`${GAS_API_URL}?action=getAchievementData`)
+    ]);
+
+    const planJson = await planRes.json();
+    const achJson = await achRes.json();
+
+    rawPlanData = planJson.data || [];
+    rawAchievementData = achJson.data || [];
+
+    if (currentUser.role === "OPERATOR") {
+      observerView.classList.add("hidden");
+      operatorView.classList.remove("hidden");
+      renderOperatorWOList();
+      renderOperatorHistory();
+    } else if (currentUser.role === "OBSERVER") {
+      operatorView.classList.add("hidden");
+      observerView.classList.remove("hidden");
+      populateBagianDropdown();
+      renderObserverDashboard();
+    }
+  } catch (error) {
+    console.error("Gagal mengambil data:", error);
+    alert("Gagal terhubung ke database Google Sheets.");
+  }
+}
+
+// --- LOGIC OPERATOR ---
+function renderOperatorWOList() {
+  const container = document.getElementById("wo-list-container");
+  container.innerHTML = "";
+
+  // Filter WO sesuai Nama Operator
+  const myWorkOrders = rawPlanData.filter(item => 
+    String(item["Nama Operator"]).toLowerCase() === currentUser.name.toLowerCase()
+  );
+
+  if (myWorkOrders.length === 0) {
+    container.innerHTML = "<p>Tidak ada penugasan Work Order untuk Anda saat ini.</p>";
+    return;
+  }
+
+  myWorkOrders.forEach(item => {
+    const card = document.createElement("div");
+    card.className = "wo-card";
+    card.innerHTML = `
+      <div class="wo-card-header">
+        <span>${item["Work Order"]}</span>
+        <span>Shift: ${item["Shift"] || "-"}</span>
+      </div>
+      <div class="wo-card-body">
+        <p><strong>Tipe Lensa:</strong> ${item["Tipe Lensa"]}</p>
+        <p><strong>No. Mesin:</strong> ${item["Nomor Mesin"]} | <strong>Bagian:</strong> ${item["Bagian"]}</p>
+        <p><strong>Plan Qty:</strong> ${item["Plan Qty"]} pcs</p>
+      </div>
+    `;
+    card.addEventListener("click", () => openModalWithWO(item));
+    container.appendChild(card);
+  });
+}
+
+function renderOperatorHistory() {
+  const container = document.getElementById("operator-history-container");
+  container.innerHTML = "";
+
+  const myHistory = rawAchievementData.filter(item => 
+    String(item["Nama Operator"]).toLowerCase() === currentUser.name.toLowerCase()
+  );
+
+  if (myHistory.length === 0) {
+    container.innerHTML = "<p>Belum ada riwayat input achievement.</p>";
+    return;
+  }
+
+  myHistory.reverse().forEach(item => {
+    const card = document.createElement("div");
+    card.className = "history-card";
+    card.innerHTML = `
+      <div class="wo-card-header">
+        <span>WO: ${item["Work Order"]}</span>
+        <span class="badge">${item["Siklus"]}</span>
+      </div>
+      <div class="wo-card-body">
+        <p><strong>Actual Qty:</strong> ${item["Actual Qty"]} pcs</p>
+        <p><strong>Tanggal Input:</strong> ${item["Timestamp"]}</p>
+        ${item["Catatan Scrap"] ? `<p><strong>Scrap:</strong> ${item["Catatan Scrap"]}</p>` : ""}
+        ${item["catatan kendala"] ? `<p><strong>Kendala:</strong> ${item["catatan kendala"]}</p>` : ""}
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function openModalWithWO(woItem) {
+  document.getElementById("form-wo-id").value = woItem["Work Order"];
+  document.getElementById("form-bagian").value = woItem["Bagian"];
+  document.getElementById("form-nomor-mesin").value = woItem["Nomor Mesin"];
+  document.getElementById("form-tipe-lensa").value = woItem["Tipe Lensa"];
+
+  document.getElementById("info-wo").textContent = woItem["Work Order"];
+  document.getElementById("info-lensa").textContent = woItem["Tipe Lensa"];
+  document.getElementById("info-mesin").textContent = woItem["Nomor Mesin"];
+  document.getElementById("info-plan").textContent = woItem["Plan Qty"];
+  document.getElementById("info-catatan-target").textContent = woItem["catatan target"] || "-";
+
+  operatorInputForm.reset();
+  woInputModal.classList.remove("hidden");
+}
+
+function closeModal() {
+  woInputModal.classList.add("hidden");
+}
+
+async function handleOperatorSubmit(e) {
+  e.preventDefault();
+  
+  const submitBtn = document.getElementById("modal-submit-btn");
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Menyimpan...";
+
+  const payload = {
+    action: "addAchievement",
+    data: {
+      workOrder: document.getElementById("form-wo-id").value,
+      namaOperator: currentUser.name,
+      bagian: document.getElementById("form-bagian").value,
+      nomorMesin: document.getElementById("form-nomor-mesin").value,
+      tipeLensa: document.getElementById("form-tipe-lensa").value,
+      siklus: document.getElementById("input-siklus").value,
+      actualQty: document.getElementById("input-actual-qty").value,
+      catatanScrap: document.getElementById("input-catatan-scrap").value,
+      catatanKendala: document.getElementById("input-catatan-kendala").value
+    }
+  };
+
+  try {
+    const res = await fetch(GAS_API_URL, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+
+    if (result.status === "success") {
+      alert("Achievement berhasil disimpan!");
+      closeModal();
+      fetchDataAndRender();
+    } else {
+      alert("Gagal menyimpan data: " + result.message);
+    }
+  } catch (error) {
+    console.error("Submit Error:", error);
+    alert("Terjadi kesalahan sistem.");
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Simpan Achievement";
+  }
+}
+
+// --- LOGIC OBSERVER ---
+function populateBagianDropdown() {
+  const select = document.getElementById("filter-bagian");
+  select.innerHTML = '<option value="">-- Semua Bagian --</option>';
+
+  const bagianSet = new Set(rawPlanData.map(item => item["Bagian"]).filter(Boolean));
+  bagianSet.forEach(bagian => {
+    const opt = document.createElement("option");
+    opt.value = bagian;
+    opt.textContent = bagian;
+    select.appendChild(opt);
+  });
+}
+
+function renderObserverDashboard() {
+  const selectedDate = document.getElementById("filter-date").value;
+  const selectedBagian = document.getElementById("filter-bagian").value;
+
+  // Filter Plan
+  let filteredPlan = rawPlanData.filter(item => {
+    let matchDate = true;
+    let matchBagian = true;
+
+    if (selectedDate && item["Tanggal Produksi"]) {
+      matchDate = item["Tanggal Produksi"].startsWith(selectedDate);
+    }
+    if (selectedBagian) {
+      matchBagian = item["Bagian"] === selectedBagian;
+    }
+    return matchDate && matchBagian;
+  });
+
+  // Filter Achievement
+  let filteredAchievement = rawAchievementData.filter(item => {
+    let matchBagian = true;
+    if (selectedBagian) {
+      matchBagian = item["Bagian"] === selectedBagian;
+    }
+    return matchBagian;
+  });
+
+  renderSummaryTable(filteredPlan, filteredAchievement);
+  renderDetailTable(filteredAchievement);
+}
+
+function renderSummaryTable(planList, achievementList) {
+  const tbody = document.querySelector("#summary-table tbody");
+  tbody.innerHTML = "";
+
+  // Grouping by [Bagian, Tipe Lensa]
+  const summaryMap = {};
+
+  planList.forEach(p => {
+    const key = `${p["Bagian"]}|||${p["Tipe Lensa"]}`;
+    if (!summaryMap[key]) {
+      summaryMap[key] = {
+        bagian: p["Bagian"],
+        tipeLensa: p["Tipe Lensa"],
+        totalPlan: 0,
+        totalActual: 0
+      };
+    }
+    summaryMap[key].totalPlan += Number(p["Plan Qty"]) || 0;
+  });
+
+  achievementList.forEach(a => {
+    const key = `${a["Bagian"]}|||${a["Tipe Lensa"]}`;
+    if (summaryMap[key]) {
+      summaryMap[key].totalActual += Number(a["Actual Qty"]) || 0;
+    }
+  });
+
+  const keys = Object.keys(summaryMap);
+  if (keys.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Data tidak ditemukan.</td></tr>';
+    return;
+  }
+
+  keys.forEach(key => {
+    const item = summaryMap[key];
+    const percentage = item.totalPlan > 0 
+      ? ((item.totalActual / item.totalPlan) * 100).toFixed(1) 
+      : 0;
+
+    let statusClass = "status-red";
+    if (percentage >= 100) statusClass = "status-green";
+    else if (percentage >= 80) statusClass = "status-yellow";
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${item.bagian}</td>
+      <td>${item.tipeLensa}</td>
+      <td>${item.totalPlan}</td>
+      <td>${item.totalActual}</td>
+      <td class="${statusClass}">${percentage}%</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderDetailTable(achievementList) {
+  const tbody = document.querySelector("#detail-table tbody");
+  tbody.innerHTML = "";
+
+  if (achievementList.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Belum ada log achievement.</td></tr>';
+    return;
+  }
+
+  achievementList.slice().reverse().forEach(item => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${item["Timestamp"] || "-"}</td>
+      <td>${item["Work Order"] || "-"}</td>
+      <td>${item["Nama Operator"] || "-"}</td>
+      <td>${item["Bagian"] || "-"}</td>
+      <td>${item["Nomor Mesin"] || "-"}</td>
+      <td>${item["Tipe Lensa"] || "-"}</td>
+      <td>${item["Siklus"] || "-"}</td>
+      <td>${item["Actual Qty"] || 0}</td>
+      <td>${item["Catatan Scrap"] || "-"}</td>
+      <td>${item["catatan kendala"] || "-"}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
