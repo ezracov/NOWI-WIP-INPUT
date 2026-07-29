@@ -329,3 +329,19 @@ body {
 .status-green { color: #16a34a; font-weight: bold; }
 .status-yellow { color: #ca8a04; font-weight: bold; }
 .status-red { color: #dc2626; font-weight: bold; }
+
+/* Badge Status Ketercapaian di Kartu WO */
+.badge-green {
+  background-color: #16a34a !important;
+  color: #fff;
+}
+
+.badge-yellow {
+  background-color: #ca8a04 !important;
+  color: #fff;
+}
+
+.badge-red {
+  background-color: #dc2626 !important;
+  color: #fff;
+}

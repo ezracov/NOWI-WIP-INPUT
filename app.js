@@ -2,7 +2,7 @@
 const USER_TOKENS = {
   "OPT-001": { name: "Budi Santoso", role: "OPERATOR" },
   "OPT-002": { name: "Siti Aminah", role: "OPERATOR" },
-  "OBS-001": { name: "Supervisor QC", role: "OBSERVER" }
+  "OBS-001": { name: "General Manager", role: "OBSERVER" }
 };
 
 // Ganti URL ini dengan Web App Deployment URL dari Google Apps Script Anda
@@ -133,7 +133,7 @@ async function fetchDataAndRender() {
   }
 }
 
-// --- LOGIC OPERATOR ---
+// --- LOGIC OPERATOR (REVISI) ---
 function renderOperatorWOList() {
   const container = document.getElementById("wo-list-container");
   container.innerHTML = "";
@@ -149,20 +149,42 @@ function renderOperatorWOList() {
   }
 
   myWorkOrders.forEach(item => {
+    const woId = item["Work Order"];
+    const planQty = Number(item["Plan Qty"]) || 0;
+
+    // Hitung akumulasi Actual Qty yang sudah pernah di-submit untuk Work Order ini
+    const totalActual = rawAchievementData
+      .filter(ach => String(ach["Work Order"]).trim() === String(woId).trim())
+      .reduce((sum, ach) => sum + (Number(ach["Actual Qty"]) || 0), 0);
+
+    // Hitung persentase ketercapaian
+    const percentage = planQty > 0 ? ((totalActual / planQty) * 100).toFixed(1) : 0;
+
+    // Tentukan warna status ketercapaian
+    let statusClass = "status-red";
+    let badgeBgClass = "badge-red";
+    if (percentage >= 100) {
+      statusClass = "status-green";
+      badgeBgClass = "badge-green";
+    } else if (percentage >= 80) {
+      statusClass = "status-yellow";
+      badgeBgClass = "badge-yellow";
+    }
+
     const card = document.createElement("div");
     card.className = "wo-card";
     card.innerHTML = `
       <div class="wo-card-header">
         <span>${item["Work Order"]}</span>
-        <span>Shift: ${item["Shift"] || "-"}</span>
+        <span class="badge ${badgeBgClass}">${percentage}%</span>
       </div>
       <div class="wo-card-body">
         <p><strong>Tipe Lensa:</strong> ${item["Tipe Lensa"]}</p>
         <p><strong>No. Mesin:</strong> ${item["Nomor Mesin"]} | <strong>Bagian:</strong> ${item["Bagian"]}</p>
-        <p><strong>Plan Qty:</strong> ${item["Plan Qty"]} pcs</p>
+        <p><strong>Pencapaian:</strong> <span class="${statusClass}">${percentage}%</span> (${totalActual} / ${planQty} pcs)</p>
       </div>
     `;
-    card.addEventListener("click", () => openModalWithWO(item));
+    card.addEventListener("click", () => openModalWithWO(item, totalActual, percentage));
     container.appendChild(card);
   });
 }
@@ -199,7 +221,7 @@ function renderOperatorHistory() {
   });
 }
 
-function openModalWithWO(woItem) {
+function openModalWithWO(woItem, totalActual = 0, percentage = 0) {
   document.getElementById("form-wo-id").value = woItem["Work Order"];
   document.getElementById("form-bagian").value = woItem["Bagian"];
   document.getElementById("form-nomor-mesin").value = woItem["Nomor Mesin"];
@@ -210,6 +232,12 @@ function openModalWithWO(woItem) {
   document.getElementById("info-mesin").textContent = woItem["Nomor Mesin"];
   document.getElementById("info-plan").textContent = woItem["Plan Qty"];
   document.getElementById("info-catatan-target").textContent = woItem["catatan target"] || "-";
+
+  // Tampilkan info pencapaian saat ini di dalam modal
+  const infoProgress = document.getElementById("info-progress");
+  if (infoProgress) {
+    infoProgress.textContent = `${totalActual} / ${woItem["Plan Qty"]} pcs (${percentage}%)`;
+  }
 
   operatorInputForm.reset();
   woInputModal.classList.remove("hidden");
