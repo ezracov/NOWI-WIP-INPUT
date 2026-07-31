@@ -76,6 +76,26 @@ document.addEventListener("DOMContentLoaded", () => {
   setupEventListeners();
 });
 
+// Helper untuk merapikan format Timestamp UTC/ISO menjadi waktu lokal Indonesia (WIB)
+function formatTimestamp(isoString) {
+  if (!isoString) return "-";
+  
+  const date = new Date(isoString);
+  
+  // Cek jika penanganan tanggal invalid
+  if (isNaN(date.getTime())) return isoString;
+
+  // Format menjadi: YYYY-MM-DD HH:mm:ss (Waktu Lokal)
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
 function setupEventListeners() {
   loginForm.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -245,7 +265,7 @@ function renderOperatorHistory() {
       </div>
       <div class="wo-card-body">
         <p><strong>Actual Qty:</strong> ${item["Actual Qty"]} pcs</p>
-        <p><strong>Tanggal Input:</strong> ${item["Timestamp"]}</p>
+        <p><strong>Tanggal Input:</strong> ${formatTimestamp(item["Timestamp"])}</p>
         ${item["Catatan Scrap"] ? `<p><strong>Scrap:</strong> ${item["Catatan Scrap"]}</p>` : ""}
         ${item["catatan kendala"] ? `<p><strong>Kendala:</strong> ${item["catatan kendala"]}</p>` : ""}
       </div>
@@ -465,7 +485,7 @@ function renderDetailTable(achievementList) {
   achievementList.slice().reverse().forEach(item => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${item["Timestamp"] || "-"}</td>
+      <td>${formatTimestamp(item["Timestamp"])}</td>
       <td>${item["Work Order"] || "-"}</td>
       <td>${item["Nama Operator"] || "-"}</td>
       <td>${item["Bagian"] || "-"}</td>
