@@ -340,10 +340,10 @@ function populateBagianDropdown() {
 }
 
 function renderObserverDashboard() {
-  const selectedDate = document.getElementById("filter-date").value;
+  const selectedDate = document.getElementById("filter-date").value; // Format HTML input date: YYYY-MM-DD
   const selectedBagian = document.getElementById("filter-bagian").value;
 
-  // Filter Plan
+  // Filter Plan Data
   let filteredPlan = rawPlanData.filter(item => {
     let matchDate = true;
     let matchBagian = true;
@@ -357,13 +357,26 @@ function renderObserverDashboard() {
     return matchDate && matchBagian;
   });
 
-  // Filter Achievement
+  // Filter Achievement Data (PERBAIKAN DI SINI)
   let filteredAchievement = rawAchievementData.filter(item => {
+    let matchDate = true;
     let matchBagian = true;
+
+    // Cek jika filter tanggal diisi
+    if (selectedDate) {
+      // Menggunakan "Tanggal Produksi" jika ada di Achievement,
+      // ATAU mengecek awal string "Timestamp" (misal: "2026-05-20...")
+      const achDate = item["Tanggal Produksi"] || item["Timestamp"];
+      if (achDate) {
+        matchDate = String(achDate).startsWith(selectedDate);
+      }
+    }
+
     if (selectedBagian) {
       matchBagian = item["Bagian"] === selectedBagian;
     }
-    return matchBagian;
+
+    return matchDate && matchBagian;
   });
 
   renderSummaryTable(filteredPlan, filteredAchievement);
@@ -374,15 +387,18 @@ function renderSummaryTable(planList, achievementList) {
   const tbody = document.querySelector("#summary-table tbody");
   tbody.innerHTML = "";
 
-  // Grouping by [Bagian, Tipe Lensa]
   const summaryMap = {};
 
+  // 1. Akumulasi Plan Qty
   planList.forEach(p => {
-    const key = `${p["Bagian"]}|||${p["Tipe Lensa"]}`;
+    const bagian = p["Bagian"] || "-";
+    const tipeLensa = p["Tipe Lensa"] || "-";
+    const key = `${bagian}|||${tipeLensa}`;
+
     if (!summaryMap[key]) {
       summaryMap[key] = {
-        bagian: p["Bagian"],
-        tipeLensa: p["Tipe Lensa"],
+        bagian: bagian,
+        tipeLensa: tipeLensa,
         totalPlan: 0,
         totalActual: 0
       };
@@ -390,11 +406,22 @@ function renderSummaryTable(planList, achievementList) {
     summaryMap[key].totalPlan += Number(p["Plan Qty"]) || 0;
   });
 
+  // 2. Akumulasi Actual Qty (Sudah terfilter tanggal dari caller)
   achievementList.forEach(a => {
-    const key = `${a["Bagian"]}|||${a["Tipe Lensa"]}`;
-    if (summaryMap[key]) {
-      summaryMap[key].totalActual += Number(a["Actual Qty"]) || 0;
+    const bagian = a["Bagian"] || "-";
+    const tipeLensa = a["Tipe Lensa"] || "-";
+    const key = `${bagian}|||${tipeLensa}`;
+
+    // Buat entry baru jika misal ada Actual di tanggal tsb tapi Plan-nya 0
+    if (!summaryMap[key]) {
+      summaryMap[key] = {
+        bagian: bagian,
+        tipeLensa: tipeLensa,
+        totalPlan: 0,
+        totalActual: 0
+      };
     }
+    summaryMap[key].totalActual += Number(a["Actual Qty"]) || 0;
   });
 
   const keys = Object.keys(summaryMap);
@@ -403,6 +430,7 @@ function renderSummaryTable(planList, achievementList) {
     return;
   }
 
+  // 3. Render Baris Tabel
   keys.forEach(key => {
     const item = summaryMap[key];
     const percentage = item.totalPlan > 0 
